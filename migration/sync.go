@@ -6,7 +6,11 @@ import (
 )
 
 func (m *Manager) syncMigrations(ctx context.Context, existing, files []Migration) error {
-	lastExistingIndex := 0
+	lastExistingIndex := -1
+
+	if len(existing) > len(files) {
+		return fmt.Errorf("Existing migrations count exceeds migration files")
+	}
 
 	for i, e := range existing {
 		f := files[i]
@@ -22,20 +26,12 @@ func (m *Manager) syncMigrations(ctx context.Context, existing, files []Migratio
 		lastExistingIndex = i
 	}
 
-	fmt.Printf("lastExistingIndex: %d, len(files): %d\n", lastExistingIndex, len(files))
+	migrationsToRun := files[lastExistingIndex+1:]
 
-	if len(existing) == len(files) {
-		m.logger.Info("No migrations to run")
+	if len(migrationsToRun) == 0 {
+		m.logger.Info("No new migrations to run")
 		return nil
 	}
 
-	migrationsToRun := files[lastExistingIndex+1:]
-
-	for _, migration := range migrationsToRun {
-		fmt.Printf("Will run %+v\n", migration)
-	}
-
-	m.createMigrations(ctx, migrationsToRun)
-
-	return nil
+	return m.createMigrations(ctx, migrationsToRun)
 }

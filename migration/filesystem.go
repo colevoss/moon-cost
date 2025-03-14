@@ -53,6 +53,7 @@ func (m *Manager) inspectFile(entry os.DirEntry) (Migration, bool, error) {
 
 	migration.Created = parsed.Timestamp
 	migration.Name = parsed.Name
+	migration.Filename = filename
 
 	m.logger.Debug("Parsed migration details from filename", "timestamp", migration.Created, "name", migration.Name)
 

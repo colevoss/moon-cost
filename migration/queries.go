@@ -2,7 +2,9 @@ package migration
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
+	"time"
 )
 
 const ensureMigrationsTableQuery = `
@@ -49,17 +51,19 @@ func (m *Manager) getAllMigrations(ctx context.Context) ([]Migration, error) {
 
 	for rows.Next() {
 		var migration Migration
-		// var createdInt int64
+		var createdInt int64
 
 		rows.Scan(
 			&migration.Id,
 			&migration.Name,
-			// &createdInt,
-			&migration.Created,
+			&migration.Filename,
+			&createdInt,
+			// &migration.Created,
 			&migration.Instruction,
 		)
 
-		// migration.Created = time.UnixMilli(createdInt)
+		migration.Created = time.UnixMilli(createdInt)
+		fmt.Printf("%d = %s\n", createdInt, migration.Created)
 
 		migrations = append(migrations, migration)
 	}
@@ -92,6 +96,19 @@ func (m *Manager) createMigrations(ctx context.Context, migrations []Migration) 
 	}
 
 	for _, migration := range migrations {
+		m.logger.Debug("Running migration", "name", migration.Name, "file", migration.Filename, "query", migration.Instruction)
+
+		if err := m.runMigration(ctx, tx, migration); err != nil {
+			if rbError := tx.Rollback(); rbError != nil {
+				m.logger.Error("error running rolling back migration", "error", err)
+				return rbError
+			}
+
+			return fmt.Errorf("Error running migration %w", err)
+		}
+
+		m.logger.Info("Migration ran successfully", "file", migration.Filename)
+
 		m.logger.Debug("Creating migration", "name", migration.Name, "created", migration.Created)
 
 		res, err := stmt.ExecContext(
@@ -122,4 +139,10 @@ func (m *Manager) createMigrations(ctx context.Context, migrations []Migration) 
 	}
 
 	return nil
+}
+
+func (m *Manager) runMigration(ctx context.Context, tx *sql.Tx, migration Migration) error {
+	_, err := tx.ExecContext(ctx, migration.Instruction)
+
+	return err
 }
