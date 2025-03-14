@@ -10,6 +10,6 @@ func Ok(cond bool, message string, args ...any) {
 	panic(fmt.Sprintf(message, args...))
 }
 
-func Ensure(val interface{}, message string, args ...any) {
+func Ensure(val any, message string, args ...any) {
 	Ok(val != nil, message, args...)
 }

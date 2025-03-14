@@ -35,6 +35,10 @@ func (mcli *MigrationCLI) init() {
 }
 
 func (mcli *MigrationCLI) Command(args []string) error {
+	if len(args) == 0 {
+		return fmt.Errorf("No command provided.")
+	}
+
 	command := args[0]
 	flags := args[1:]
 
