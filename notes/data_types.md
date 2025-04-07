@@ -20,9 +20,13 @@
 * id - primary key
 * firstName - string
 * lastName - string
-* email - string
-* password stuff - strings
-* active - string
+
+## Auth/Account
+
+email - string
+password - string
+salt - string
+active
 
 ## Vendor
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -47,6 +48,8 @@ func (m *Manager) getAllMigrations(ctx context.Context) ([]Migration, error) {
 		return nil, fmt.Errorf("Error querying for migrations: %w", err)
 	}
 
+	defer rows.Close()
+
 	var migrations []Migration
 
 	for rows.Next() {
@@ -58,13 +61,10 @@ func (m *Manager) getAllMigrations(ctx context.Context) ([]Migration, error) {
 			&migration.Name,
 			&migration.Filename,
 			&createdInt,
-			// &migration.Created,
 			&migration.Instruction,
 		)
 
 		migration.Created = time.UnixMilli(createdInt)
-		fmt.Printf("%d = %s\n", createdInt, migration.Created)
-
 		migrations = append(migrations, migration)
 	}
 
@@ -142,7 +142,32 @@ func (m *Manager) createMigrations(ctx context.Context, migrations []Migration) 
 }
 
 func (m *Manager) runMigration(ctx context.Context, tx *sql.Tx, migration Migration) error {
-	_, err := tx.ExecContext(ctx, migration.Instruction)
+	queries := splitQueries(migration.Instruction)
 
-	return err
+	for _, q := range queries {
+		_, err := tx.ExecContext(ctx, q)
+
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func splitQueries(queries string) []string {
+	split := strings.SplitAfter(queries, ";")
+	var trimmedQueries []string
+
+	for _, query := range split {
+		trimmed := strings.TrimSpace(query)
+
+		if trimmed == "" {
+			continue
+		}
+
+		trimmedQueries = append(trimmedQueries, trimmed)
+	}
+
+	return trimmedQueries
 }
