@@ -47,7 +47,7 @@ func (mcli *MigrationCLI) Command(args []string) error {
 		return mcli.Create(flags)
 
 	case "run":
-		return mcli.Run()
+		return mcli.Run(flags)
 
 	default:
 		return fmt.Errorf("Invalid command: %s", command)
@@ -66,15 +66,23 @@ func (mcli *MigrationCLI) Create(args []string) error {
 	return createCli.run()
 }
 
+func (mcli *MigrationCLI) Run(args []string) error {
+	runCli := runCli{cli: mcli}
+
+	if err := runCli.init(args); err != nil {
+		return err
+	}
+
+	mcli.init()
+
+	return runCli.run()
+}
+
 func (mcli *MigrationCLI) parseUniversalFlags(fs *flag.FlagSet) {
 	fs.BoolVar(&mcli.verbose, "v", false, "Verbose")
 
-	// allows user to set suppress directly set suppres on struct
+	// allows user to set suppress directly set suppress on struct
 	if !mcli.suppress {
 		fs.BoolVar(&mcli.suppress, "s", false, "Suppress")
 	}
-}
-
-func (mcli *MigrationCLI) Run() error {
-	return nil
 }
