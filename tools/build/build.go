@@ -1,25 +1,21 @@
 package main
 
 import (
-	"bufio"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/fs"
 	"log/slog"
+	"os/exec"
 	"path/filepath"
 	"slices"
 )
 
-type BuildEvent struct {
-	ImportPath string
-	Action     string
-	Output     string
-}
-
 type Config struct {
 	base   string
+	logOut io.Writer
 	Src    []string `json:"src"`
 	Out    string   `json:"out"`
 	Ignore []string `json:"ignore"`
@@ -32,7 +28,7 @@ type buildSrc struct {
 	srcDir   string
 }
 
-func ConfigFrom(base string, r io.Reader) (Config, error) {
+func ConfigFrom(base string, r io.Reader, out io.Writer) (Config, error) {
 	var config Config
 
 	if err := json.NewDecoder(r).Decode(&config); err != nil {
@@ -40,6 +36,7 @@ func ConfigFrom(base string, r io.Reader) (Config, error) {
 	}
 
 	config.base = base
+	config.logOut = out
 
 	return config, nil
 }
@@ -51,28 +48,46 @@ func (c *Config) Run(ctx context.Context) error {
 		return err
 	}
 
+	var errs error
+
 	for _, src := range srcs {
 		if slices.Contains(c.Ignore, src.name) {
-			slog.Debug("Skipping build target", "module", src.name, "path", src.relPath, "srcDir", src.srcDir)
+			slog.Debug(
+				"Skipping build target",
+				"module", src.name,
+				"path", src.relPath,
+				"srcDir", src.srcDir,
+			)
+
 			continue
 		}
 
-		if err := c.build(ctx, src); err != nil {
-			return err
+		err := c.build(ctx, src)
+
+		if err != nil {
+			errs = errors.Join(errs, err)
 		}
 	}
 
-	return nil
+	return errs
 }
 
 func (c *Config) build(ctx context.Context, build buildSrc) error {
 	output := c.buildOut(build)
 	buildCommand := goBuild(output, build.fullPath)
 
-	slog.Info("Building module", "src", build.relPath, "out", output)
-
 	cmd := buildCommand.exec(ctx)
+
+	slog.Debug(
+		"Building module",
+		"src", build.relPath,
+		"out", output,
+		"cmd", buildCommand,
+	)
+
 	out, err := cmd.StdoutPipe()
+
+	defer out.Close()
 
 	if err != nil {
 		return err
@@ -82,28 +97,62 @@ func (c *Config) build(ctx context.Context, build buildSrc) error {
 		return err
 	}
 
-	go func(r io.Reader) {
-		scanner := bufio.NewScanner(r)
+	slog.Debug(
+		"Started build command",
+		"module", build.name,
+		"pid", cmd.Process.Pid,
+	)
 
-		for scanner.Scan() {
-			text := scanner.Text()
+	fmt.Fprintf(c.logOut, "Building %s\n", build.name)
 
-			var event BuildEvent
+	slog.Info(
+		"Building",
+		"name", build.name,
+		"src", build.relPath,
+		"out", output,
+	)
 
-			if err := json.Unmarshal([]byte(text), &event); err != nil {
-				fmt.Printf("unmarshall err: %v\n", err)
-				return
-			}
+	events := ReadEvents(out)
 
-			fmt.Printf("%+v\n", event)
+	if err = cmd.Wait(); err != nil {
+		if err, ok := err.(*exec.ExitError); !ok {
+			fmt.Printf("err: %v\n", err)
+			return err
 		}
-	}(out)
-
-	if err := cmd.Wait(); err != nil {
-		return err
 	}
 
-	return nil
+	if cmd.ProcessState.Success() {
+		fmt.Fprintf(c.logOut, "Success %s -> %s\n", build.relPath, output)
+
+		slog.Info(
+			"Success",
+			"name", build.name,
+			"src", build.relPath,
+			"out", output,
+		)
+
+		return nil
+	}
+
+	slog.Warn(
+		"Error running build command",
+		"pid", cmd.Process.Pid,
+		"err", err,
+	)
+
+	var errs error
+	for _, event := range events {
+		eventStr := event.String()
+
+		if eventStr == "" {
+			continue
+		}
+
+		fmt.Printf("\t[%s] %s\n", event.ImportPath, event)
+		errs = errors.Join(errs, event)
+	}
+
+	return errs
 }
 
 func (c *Config) buildOut(build buildSrc) string {
