@@ -1,4 +1,4 @@
-package migration
+package main
 
 import (
 	"context"
@@ -8,7 +8,7 @@ import (
 	_ "github.com/tursodatabase/go-libsql"
 )
 
-func main() {
+func example() {
 	url := "file:./local.db"
 	db, err := sql.Open("libsql", url)
 
