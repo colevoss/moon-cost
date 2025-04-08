@@ -26,9 +26,10 @@ type Config struct {
 }
 
 type buildSrc struct {
-	Name     string
-	FullPath string
-	RelPath  string
+	name     string
+	fullPath string
+	relPath  string
+	srcDir   string
 }
 
 func ConfigFrom(base string, r io.Reader) (Config, error) {
@@ -44,19 +45,19 @@ func ConfigFrom(base string, r io.Reader) (Config, error) {
 }
 
 func (c *Config) Run(ctx context.Context) error {
-	targets, err := c.srcs()
+	srcs, err := c.srcs()
 
 	if err != nil {
 		return err
 	}
 
-	for _, target := range targets {
-		if slices.Contains(c.Ignore, target.Name) {
-			slog.Debug("Skipping build target", "target", target.Name, "path", target.FullPath)
+	for _, src := range srcs {
+		if slices.Contains(c.Ignore, src.name) {
+			slog.Debug("Skipping build target", "module", src.name, "path", src.relPath, "srcDir", src.srcDir)
 			continue
 		}
 
-		if err := c.build(ctx, target); err != nil {
+		if err := c.build(ctx, src); err != nil {
 			return err
 		}
 	}
@@ -66,12 +67,11 @@ func (c *Config) Run(ctx context.Context) error {
 
 func (c *Config) build(ctx context.Context, build buildSrc) error {
 	output := c.buildOut(build)
-	buildCommand := goBuild(output, build.FullPath)
+	buildCommand := goBuild(output, build.fullPath)
 
-	fmt.Printf("Building %s -> %s\n", build.RelPath, output)
+	slog.Info("Building module", "src", build.relPath, "out", output)
 
 	cmd := buildCommand.exec(ctx)
-
 	out, err := cmd.StdoutPipe()
 
 	if err != nil {
@@ -107,7 +107,7 @@ func (c *Config) build(ctx context.Context, build buildSrc) error {
 }
 
 func (c *Config) buildOut(build buildSrc) string {
-	return filepath.Join(c.Out, build.Name)
+	return filepath.Join(c.Out, build.name)
 }
 
 func (c *Config) srcs() ([]buildSrc, error) {
@@ -129,7 +129,7 @@ func (c *Config) srcs() ([]buildSrc, error) {
 func (c *Config) srcFromDir(srcDir string) ([]buildSrc, error) {
 	srcPaths := []buildSrc{}
 
-	slog.Debug("Walking src directory", "src", srcDir)
+	slog.Debug("Inspecting src directory", "src", srcDir)
 
 	err := filepath.WalkDir(srcDir, func(path string, d fs.DirEntry, err error) error {
 		if !d.IsDir() || path == srcDir {
@@ -143,16 +143,19 @@ func (c *Config) srcFromDir(srcDir string) ([]buildSrc, error) {
 			return err
 		}
 
-		fullPath, err := filepath.Rel(c.base, abs)
+		rel, err := filepath.Rel(c.base, abs)
 
 		if err != nil {
 			return err
 		}
 
+		slog.Debug("Found module", "src", srcDir, "path", rel, "name", name)
+
 		bs := buildSrc{
-			Name:     name,
-			FullPath: abs,
-			RelPath:  fullPath,
+			name:     name,
+			fullPath: abs,
+			relPath:  rel,
+			srcDir:   srcDir,
 		}
 
 		srcPaths = append(srcPaths, bs)

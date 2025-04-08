@@ -3,14 +3,15 @@ package main
 import (
 	"context"
 	"fmt"
-	"log/slog"
+	"log"
 	"os"
 )
 
 func main() {
-	ctx := context.Background()
+	defer log.SetFlags(log.Flags())
+	log.SetFlags(0)
 
-	slog.SetLogLoggerLevel(slog.LevelDebug)
+	ctx := context.Background()
 	file, err := os.Open("./build.json")
 
 	if err != nil {
