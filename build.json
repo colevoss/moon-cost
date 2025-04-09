@@ -1,5 +1,0 @@
-{
-  "src": ["./cmd", "./tools"],
-  "out": "./bin",
-  "ignore": []
-}

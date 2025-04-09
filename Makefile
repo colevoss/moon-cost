@@ -2,10 +2,12 @@
 clean:
 	rm -rf ./bin
 
-build-cli: build-migration-cli
+build: build-tools
 
-build-migration-cli:
-	go build -o ./bin/migration ./cmd/migration
+build-tools: build-migration
+
+build-migration:
+	go build -o ./bin/migration ./tools/migration
 
 test:
 	go test -cover -coverprofile=coverage.out ./... -v
