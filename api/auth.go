@@ -15,9 +15,10 @@ type AuthController struct {
 func (a *AuthController) Init(api *API) {
 	a.Route = api.Server.Route("/auth")
 
-	a.Route.Post("/signup", a.Signup)
+	a.Route.Post("/signup/{id}", a.Signup)
 }
 
 func (a *AuthController) Signup(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "HELLO")
+	id := r.PathValue("id")
+	fmt.Fprintf(w, "HELLO "+id)
 }
