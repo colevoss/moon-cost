@@ -9,7 +9,7 @@ import (
 )
 
 func TestBasicServer(t *testing.T) {
-	server := NewServer()
+	server := New()
 	route := server.Route("")
 
 	expected := "hello world"

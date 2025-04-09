@@ -9,25 +9,25 @@ var (
 	SignupAccountExistsError = errors.New("Account already exists")
 )
 
+var (
+	defaultSalt = RandomSalt{}
+)
+
 type Service struct {
 	Salt Salt
 	Repo Repo
 }
 
-type SignupInput struct {
+func NewService(repo Repo) *Service {
+	return &Service{
+		Repo: repo,
+		Salt: defaultSalt,
+	}
+}
+
+type Signup struct {
 	Email     string
 	Password  string
-	Firstname string
-	Lastname  string
-}
-
-type signupAccount struct {
-	email    string
-	salt     string
-	password string
-}
-
-type signupUser struct {
 	Firstname string
 	Lastname  string
 }
@@ -37,7 +37,7 @@ type SignupResult struct {
 	Account Account
 }
 
-func (s *Service) Signup(ctx context.Context, input SignupInput) (SignupResult, error) {
+func (s *Service) Signup(ctx context.Context, input Signup) (SignupResult, error) {
 	salt := s.Salt.Generate()
 
 	saltedPass := Sha256SaltedPassword{

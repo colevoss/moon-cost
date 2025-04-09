@@ -27,7 +27,7 @@ func TestHttpMethods(t *testing.T) {
 		{http.MethodTrace, false, "test-TRACE"},
 	}
 
-	server := NewServer()
+	server := New()
 	route := server.Route("")
 
 	createHandler := func(td testData) http.HandlerFunc {
@@ -102,7 +102,7 @@ func TestHttpMethods(t *testing.T) {
 }
 
 func TestRoutes(t *testing.T) {
-	server := NewServer()
+	server := New()
 
 	baseRouter := server.Route("/base")
 	baseRouter.Get("", func(w http.ResponseWriter, r *http.Request) {

@@ -6,7 +6,7 @@ type Server struct {
 	Mux *http.ServeMux
 }
 
-func NewServer() *Server {
+func New() *Server {
 	return &Server{
 		Mux: http.NewServeMux(),
 	}

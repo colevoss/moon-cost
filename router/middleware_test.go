@@ -15,7 +15,7 @@ func TestMiddlewareCall(t *testing.T) {
 		})
 	}
 
-	server := NewServer()
+	server := New()
 	useRouter := server.Route("/use")
 	withRouter := server.Route("/with")
 
@@ -71,7 +71,7 @@ func TestMiddlewareCanTerminateRequest(t *testing.T) {
 		})
 	}
 
-	server := NewServer()
+	server := New()
 	route := server.Route("")
 
 	route.Use(middleware)
@@ -130,7 +130,7 @@ func TestChainedMiddlewareCalledInOrder(t *testing.T) {
 		})
 	}
 
-	server := NewServer()
+	server := New()
 	route := server.Route("")
 
 	route.Use(m1)
@@ -178,7 +178,7 @@ func TestMiddlewareIsInherited(t *testing.T) {
 		})
 	}
 
-	server := NewServer()
+	server := New()
 	router1 := server.Route("/one")
 	router1.Use(m1)
 
