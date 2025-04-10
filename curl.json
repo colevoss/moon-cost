@@ -8,6 +8,10 @@
 
   "requests": {
     "default": {
+      "before": {
+        "auth": "./path/to/auth/request"
+      },
+
       "expect": {
         "status": 200
       },
