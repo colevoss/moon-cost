@@ -2,6 +2,7 @@ package api
 
 import (
 	"fmt"
+	"io"
 	"moon-cost/router"
 	"moon-cost/services/auth"
 	"net/http"
@@ -20,5 +21,14 @@ func (a *AuthController) Init(api *API) {
 
 func (a *AuthController) Signup(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
-	fmt.Fprintf(w, "HELLO "+id)
+
+	body, err := io.ReadAll(r.Body)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadGateway)
+		return
+	}
+
+	fmt.Printf("%v\n", string(body))
+	fmt.Fprintf(w, "Hello, %s", id)
 }

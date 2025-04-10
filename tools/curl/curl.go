@@ -64,10 +64,6 @@ func (c *CurlFile) ParsedURL(config Config) (string, error) {
 }
 
 func (c *CurlFile) Req(name string) (ReqConfig, bool) {
-	if name == "" {
-		name = "default"
-	}
-
 	config, ok := c.Requests[name]
 
 	return config, ok

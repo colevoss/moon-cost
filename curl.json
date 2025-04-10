@@ -13,12 +13,11 @@
       },
 
       "params": {
-        "id": "balls",
-        "other": "tits"
+        "id": "foo"
       },
 
       "body": {
-        "file": "path/to/file"
+        "file": "./curl-body.json"
       }
     },
 
@@ -28,8 +27,7 @@
       },
 
       "params": {
-        "id": "tits",
-        "other": "balls"
+        "id": "bar"
       },
 
       "body": {

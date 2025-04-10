@@ -2,10 +2,21 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"os"
 )
 
 func main() {
+	cli := CurlCLI{}
+	ctx := context.Background()
+
+	if err := cli.Command(ctx, os.Args); err != nil {
+		fmt.Fprintln(os.Stderr, err.Error())
+		os.Exit(1)
+	}
+}
+
+func _main() {
 	ctx := context.Background()
 
 	file, err := os.Open("./curl.json")
@@ -31,7 +42,7 @@ func main() {
 		Env:  env,
 	}
 
-	if err := manager.Request(ctx, ""); err != nil {
+	if err := manager.Request(ctx, "error"); err != nil {
 		panic(err)
 	}
 }
