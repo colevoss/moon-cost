@@ -73,7 +73,7 @@ func (c *CurlCLI) Command(ctx context.Context, args []string) error {
 	}
 	defer file.Close()
 
-	var curl CurlFile
+	var curl Curl
 	if err := curl.Read(file); err != nil {
 		return err
 	}

@@ -7,7 +7,7 @@ import (
 	"text/template"
 )
 
-type CurlFile struct {
+type Curl struct {
 	Method   string               `json:"method"`
 	URL      string               `json:"url"`
 	Requests map[string]ReqConfig `json:"requests"`
@@ -37,15 +37,15 @@ type ReqExpectConfig struct {
 	Status int `json:"status"`
 }
 
-func (c *CurlFile) Read(reader io.Reader) error {
+func (c *Curl) Read(reader io.Reader) error {
 	return json.NewDecoder(reader).Decode(c)
 }
 
-func (c *CurlFile) JSON(data []byte) error {
+func (c *Curl) JSON(data []byte) error {
 	return json.Unmarshal(data, c)
 }
 
-func (c *CurlFile) ParsedURL(config Config) (string, error) {
+func (c *Curl) ParsedURL(config Config) (string, error) {
 	var buf bytes.Buffer
 
 	templ, err := template.New("url").Parse(c.URL)
@@ -61,7 +61,7 @@ func (c *CurlFile) ParsedURL(config Config) (string, error) {
 	return buf.String(), nil
 }
 
-func (c *CurlFile) Req(name string) (ReqConfig, bool) {
+func (c *Curl) Req(name string) (ReqConfig, bool) {
 	config, ok := c.Requests[name]
 
 	return config, ok

@@ -27,7 +27,7 @@ func _main() {
 
 	defer file.Close()
 
-	var curl CurlFile
+	var curl Curl
 
 	if err := curl.Read(file); err != nil {
 		panic(err)

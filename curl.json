@@ -12,6 +12,11 @@
         "status": 200
       },
 
+      "headers": {
+        "Foo": "baz",
+        "Hello": "world"
+      },
+
       "params": {
         "id": "foo"
       },

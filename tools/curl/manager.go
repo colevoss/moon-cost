@@ -14,7 +14,7 @@ var (
 
 type Manager struct {
 	Client *http.Client
-	Curl   CurlFile
+	Curl   Curl
 	Env    Env
 }
 
@@ -37,14 +37,14 @@ func (m *Manager) Request(ctx context.Context, name string) error {
 	}
 
 	reqBody, err := m.reqBody(reqCfg)
-
 	if err != nil {
 		return err
 	}
-
 	defer reqBody.Close()
 
 	req, err := http.NewRequestWithContext(ctx, m.Curl.Method, url, reqBody.Data())
+
+	m.headers(req.Header, m.Curl, reqCfg)
 
 	if err != nil {
 		return err
@@ -68,6 +68,20 @@ func (m *Manager) Request(ctx context.Context, name string) error {
 	fmt.Printf("data: %v\n", string(data))
 
 	return nil
+}
+
+func (m *Manager) headers(headers http.Header, curl Curl, req ReqConfig) {
+	for k, v := range curl.Headers {
+		headers.Add(k, v)
+	}
+
+	if len(req.Headers) == 0 {
+		return
+	}
+
+	for k, v := range req.Headers {
+		headers.Set(k, v)
+	}
 }
 
 func (m *Manager) reqBody(cfg ReqConfig) (ReqBody, error) {

@@ -24,6 +24,8 @@ func (a *AuthController) Signup(w http.ResponseWriter, r *http.Request) {
 
 	body, err := io.ReadAll(r.Body)
 
+	fmt.Printf("r.Header: %v\n", r.Header)
+
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadGateway)
 		return
