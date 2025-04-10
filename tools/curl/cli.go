@@ -13,12 +13,14 @@ type CurlCLI struct {
 	verbose bool
 	logger  *slog.Logger
 	File    io.Reader
+	EnvFile Env
 }
 
 type CLIArgs struct {
 	File    string // curl file to load
 	Request string // name of request to run
 	Verbose bool
+	Env     string
 }
 
 const (
@@ -26,6 +28,7 @@ const (
 	RequestFlagDescription = "Name of request in file to send"
 
 	VerboseFlagDescription = "Enables verbose logging"
+	EnvFlagDescription     = "Path to env file to load"
 )
 
 // Its assumed that args is os.Args
@@ -43,6 +46,9 @@ func (c *CLIArgs) Parse(args []string) error {
 
 	fs.StringVar(&c.Request, "request", DefaultRequestName, RequestFlagDescription)
 	fs.StringVar(&c.Request, "r", DefaultRequestName, RequestFlagDescription+" (shorthand)")
+
+	fs.StringVar(&c.Env, "env", "", EnvFlagDescription)
+	fs.StringVar(&c.Env, "e", "", EnvFlagDescription)
 
 	fs.BoolVar(&c.Verbose, "verbose", false, VerboseFlagDescription)
 	fs.BoolVar(&c.Verbose, "v", false, VerboseFlagDescription+" (shorthand)")
@@ -62,18 +68,20 @@ func (c *CurlCLI) Command(ctx context.Context, args []string) error {
 	}
 
 	file, err := os.Open(cliArgs.File)
-
 	if err != nil {
 		return err
 	}
+	defer file.Close()
 
 	var curl CurlFile
 	if err := curl.Read(file); err != nil {
 		return err
 	}
 
-	env := map[string]string{
-		"base": "localhost:8080",
+	env, err := c.LoadEnv(cliArgs)
+
+	if err != nil {
+		return err
 	}
 
 	manager := Manager{
@@ -82,4 +90,24 @@ func (c *CurlCLI) Command(ctx context.Context, args []string) error {
 	}
 
 	return manager.Request(ctx, cliArgs.Request)
+}
+
+func (c *CurlCLI) LoadEnv(args CLIArgs) (Env, error) {
+	env := NewEnv()
+
+	if args.Env == "" {
+		return env, nil
+	}
+
+	file, err := os.Open(args.Env)
+
+	if err != nil {
+		return env, err
+	}
+
+	defer file.Close()
+
+	env.Read(file)
+
+	return env, nil
 }

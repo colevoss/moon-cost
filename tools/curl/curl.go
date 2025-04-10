@@ -14,8 +14,6 @@ type CurlFile struct {
 	Headers  map[string]string    `json:"headers"`
 }
 
-type Env map[string]string
-
 type Config struct {
 	Env    Env
 	Params map[string]string
