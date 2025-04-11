@@ -1,5 +1,7 @@
 *.db
 
 bin
+moon
 
+coverage
 coverage.out

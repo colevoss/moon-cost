@@ -2,9 +2,11 @@ package api
 
 import (
 	"fmt"
+	"io"
 	"moon-cost/router"
 	"moon-cost/services/auth"
 	"net/http"
+	"time"
 )
 
 type AuthController struct {
@@ -15,9 +17,23 @@ type AuthController struct {
 func (a *AuthController) Init(api *API) {
 	a.Route = api.Server.Route("/auth")
 
-	a.Route.Post("/signup", a.Signup)
+	a.Route.Post("/signup/{id}", a.Signup)
 }
 
 func (a *AuthController) Signup(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "HELLO")
+	id := r.PathValue("id")
+
+	body, err := io.ReadAll(r.Body)
+
+	fmt.Printf("r.Header: %v\n", r.Header)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadGateway)
+		return
+	}
+
+	time.Sleep(10 * time.Second)
+
+	fmt.Printf("%v\n", string(body))
+	fmt.Fprintf(w, "Hello, %s", id)
 }

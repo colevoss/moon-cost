@@ -1,4 +1,4 @@
-package main
+package migration
 
 import (
 	"flag"
@@ -14,11 +14,20 @@ type createCli struct {
 	cli  *MigrationCLI
 }
 
+const (
+	MigrationNameDescription = "Name of migration"
+	MigrationDirDescription  = "Directory to store migration in"
+)
+
 func (c *createCli) init(args []string) error {
 	fs := flag.NewFlagSet("create", flag.ExitOnError)
 
-	fs.StringVar(&c.name, "name", "", "")
-	fs.StringVar(&c.dir, "dir", "", "")
+	fs.StringVar(&c.name, "name", "", MigrationNameDescription)
+	fs.StringVar(&c.name, "n", "", MigrationNameDescription+" (short)")
+
+	fs.StringVar(&c.dir, "dir", "", MigrationDirDescription)
+	fs.StringVar(&c.dir, "d", "", MigrationDirDescription+" (short)")
+
 	c.cli.parseUniversalFlags(fs)
 
 	fs.Parse(args)

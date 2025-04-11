@@ -1,6 +1,7 @@
-package main
+package migration
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log/slog"
@@ -34,7 +35,7 @@ func (mcli *MigrationCLI) init() {
 	}
 }
 
-func (mcli *MigrationCLI) Command(args []string) error {
+func (mcli *MigrationCLI) Command(ctx context.Context, args []string) error {
 	if len(args) == 0 {
 		return fmt.Errorf("No command provided.")
 	}
@@ -47,7 +48,7 @@ func (mcli *MigrationCLI) Command(args []string) error {
 		return mcli.Create(flags)
 
 	case "run":
-		return mcli.Run(flags)
+		return mcli.Run(ctx, flags)
 
 	default:
 		return fmt.Errorf("Invalid command: %s", command)
@@ -66,16 +67,16 @@ func (mcli *MigrationCLI) Create(args []string) error {
 	return createCli.run()
 }
 
-func (mcli *MigrationCLI) Run(args []string) error {
+func (mcli *MigrationCLI) Run(ctx context.Context, args []string) error {
 	runCli := runCli{cli: mcli}
 
-	if err := runCli.init(args); err != nil {
+	if err := runCli.Init(args); err != nil {
 		return err
 	}
 
 	mcli.init()
 
-	return runCli.run()
+	return runCli.Command(ctx)
 }
 
 func (mcli *MigrationCLI) parseUniversalFlags(fs *flag.FlagSet) {
