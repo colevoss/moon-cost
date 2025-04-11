@@ -10,6 +10,7 @@ on:
 jobs:
   checks:
     name: Checks
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
@@ -22,6 +23,18 @@ jobs:
         name: Install
         run: |
           make install
+
+      -
+        id: vet
+        name: Vet
+        run: |
+          make check/vet
+
+      -
+        id: vet
+        name: Vet
+        run: |
+          make check/fmt
 
       -
         id: Test
