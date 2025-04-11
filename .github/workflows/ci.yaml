@@ -32,7 +32,7 @@ jobs:
 
       -
         id: fmt
-        name: Vet
+        name: Check Format
         run: |
           make check/fmt
 
@@ -41,3 +41,9 @@ jobs:
         name: Test
         run: |
           make test
+
+      -
+        id: Build
+        name: Build
+        run: |
+          make build
