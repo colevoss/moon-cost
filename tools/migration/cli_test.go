@@ -1,6 +1,7 @@
-package main
+package migration
 
 import (
+	"context"
 	"moon-cost/common"
 	"moon-cost/moontest"
 	"os"
@@ -10,6 +11,8 @@ import (
 )
 
 func TestCreateCLI(t *testing.T) {
+	ctx := context.Background()
+
 	time := time.Now()
 	now := common.TestNow{Time: time}
 	dir := t.TempDir()
@@ -25,7 +28,7 @@ func TestCreateCLI(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		err := cli.Command(test.args)
+		err := cli.Command(ctx, test.args)
 
 		moontest.AssertNilError(t, err)
 		fileName := makeMigrationFileName(time, test.migrationName)
@@ -40,6 +43,7 @@ func TestCreateCLI(t *testing.T) {
 }
 
 func TestCreateCliErrors(t *testing.T) {
+	ctx := context.Background()
 	f, _ := os.CreateTemp("", "test-file")
 	dir := t.TempDir()
 
@@ -59,7 +63,7 @@ func TestCreateCliErrors(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.test, func(t *testing.T) {
-			err := cli.Command(test.args)
+			err := cli.Command(ctx, test.args)
 
 			if err == nil {
 				t.Errorf("Expected command to error. Got nil")

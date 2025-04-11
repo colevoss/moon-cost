@@ -1,4 +1,4 @@
-package main
+package migration
 
 import (
 	"context"
@@ -17,7 +17,7 @@ type runCli struct {
 	cli        *MigrationCLI
 }
 
-func (r *runCli) init(args []string) error {
+func (r *runCli) Init(args []string) error {
 	fs := flag.NewFlagSet("run", flag.ExitOnError)
 
 	fs.StringVar(&r.dir, "dir", "migrations", "Directory to find migration files")
@@ -34,7 +34,7 @@ func (r *runCli) init(args []string) error {
 	return nil
 }
 
-func (r *runCli) run() error {
+func (r *runCli) Command(ctx context.Context) error {
 	dbName := fmt.Sprintf("file:%s", r.dbFilename)
 
 	db, err := sql.Open("libsql", dbName)
@@ -46,7 +46,6 @@ func (r *runCli) run() error {
 	defer db.Close()
 
 	logger := slog.Default()
-	ctx := context.Background()
 
 	manager := Manager{
 		Dir:    r.dir,

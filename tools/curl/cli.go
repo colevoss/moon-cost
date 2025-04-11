@@ -1,4 +1,4 @@
-package main
+package curl
 
 import (
 	"context"
@@ -14,6 +14,8 @@ type CurlCLI struct {
 	logger  *slog.Logger
 	File    io.Reader
 	EnvFile Env
+
+	Args CLIArgs
 }
 
 type CLIArgs struct {
@@ -31,15 +33,15 @@ const (
 	EnvFlagDescription     = "Path to env file to load"
 )
 
-// Its assumed that args is os.Args
-// args[1] should be the filename
-// args[2:] should be flags
+// Its assumed that args is os.Args[2:]
+// args[0] should be the filename
+// args[1:] should be flags
 func (c *CLIArgs) Parse(args []string) error {
-	if len(args) < 2 {
+	if len(args) < 1 {
 		return fmt.Errorf("Not enough arguments")
 	}
 
-	file := args[1]
+	file := args[0]
 	c.File = file
 
 	fs := flag.NewFlagSet("curl", flag.ExitOnError)
@@ -53,21 +55,31 @@ func (c *CLIArgs) Parse(args []string) error {
 	fs.BoolVar(&c.Verbose, "verbose", false, VerboseFlagDescription)
 	fs.BoolVar(&c.Verbose, "v", false, VerboseFlagDescription+" (shorthand)")
 
-	if err := fs.Parse(args[2:]); err != nil {
+	if err := fs.Parse(args[1:]); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (c *CurlCLI) Command(ctx context.Context, args []string) error {
+func (c *CurlCLI) Init(args []string) error {
 	var cliArgs CLIArgs
 
 	if err := cliArgs.Parse(args); err != nil {
 		return err
 	}
 
-	file, err := os.Open(cliArgs.File)
+	c.Args = cliArgs
+
+	return nil
+}
+
+func (c *CurlCLI) Command(ctx context.Context, args []string) error {
+	if err := c.Init(args); err != nil {
+		return err
+	}
+
+	file, err := os.Open(c.Args.File)
 	if err != nil {
 		return err
 	}
@@ -78,7 +90,7 @@ func (c *CurlCLI) Command(ctx context.Context, args []string) error {
 		return err
 	}
 
-	env, err := c.LoadEnv(cliArgs)
+	env, err := c.LoadEnv(c.Args)
 
 	if err != nil {
 		return err
@@ -89,7 +101,7 @@ func (c *CurlCLI) Command(ctx context.Context, args []string) error {
 		Env:  env,
 	}
 
-	return manager.Request(ctx, cliArgs.Request)
+	return manager.Request(ctx, c.Args.Request)
 }
 
 func (c *CurlCLI) LoadEnv(args CLIArgs) (Env, error) {

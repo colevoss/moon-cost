@@ -6,6 +6,7 @@ import (
 	"moon-cost/router"
 	"moon-cost/services/auth"
 	"net/http"
+	"time"
 )
 
 type AuthController struct {
@@ -30,6 +31,8 @@ func (a *AuthController) Signup(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadGateway)
 		return
 	}
+
+	time.Sleep(10 * time.Second)
 
 	fmt.Printf("%v\n", string(body))
 	fmt.Fprintf(w, "Hello, %s", id)

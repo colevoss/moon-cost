@@ -1,4 +1,4 @@
-package main
+package curl
 
 import (
 	"bytes"

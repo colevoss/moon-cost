@@ -1,4 +1,4 @@
-package main
+package curl
 
 import (
 	"context"
@@ -54,6 +54,7 @@ func (m *Manager) Request(ctx context.Context, name string) error {
 	res, err := client.Do(req)
 
 	if err != nil {
+		fmt.Printf("err: %v\n", err)
 		return err
 	}
 
