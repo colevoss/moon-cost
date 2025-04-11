@@ -31,7 +31,7 @@ jobs:
           make check/vet
 
       -
-        id: vet
+        id: fmt
         name: Vet
         run: |
           make check/fmt
