@@ -20,7 +20,7 @@
       "headers": {},
 
       "params": {
-        "id": "foo"
+        "id": "foo-bar"
       },
 
       "body": {
