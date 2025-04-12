@@ -89,7 +89,7 @@ func TestEnvAddEnviron(t *testing.T) {
 }
 
 func TestEnvReadSuccess(t *testing.T) {
-	file, err := os.Open("./test/env.good")
+	file, err := os.Open("./test-fixtures/env.good")
 
 	if err != nil {
 		t.Fatal(err)
@@ -125,7 +125,7 @@ func TestEnvReadSuccess(t *testing.T) {
 }
 
 func TestEnvReadError(t *testing.T) {
-	file, err := os.Open("./test/env.bad")
+	file, err := os.Open("./test-fixtures/env.bad")
 
 	if err != nil {
 		t.Fatal(err)

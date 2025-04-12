@@ -3,7 +3,8 @@
   "url": "http://{{.Env.base}}/auth/signup/{{.Params.id}}",
 
   "headers": {
-    "Foo": "bar"
+    "Foo": "{{.Params.id}}",
+    "Authorization": "{{.Env.auth}}"
   },
 
   "requests": {
@@ -16,13 +17,10 @@
         "status": 200
       },
 
-      "headers": {
-        "Foo": "baz",
-        "Hello": "world"
-      },
+      "headers": {},
 
       "params": {
-        "id": "foo"
+        "id": "foo-bar"
       },
 
       "body": {
