@@ -21,6 +21,18 @@ type ReqBody struct {
 	Type ReqBodyType
 }
 
+func OpenBody(body Body) (ReqBody, error) {
+	if body.File != "" {
+		return FileReqBody(body.File)
+	}
+
+	if body.JSON != nil {
+		return JSONReqBody(body.JSON)
+	}
+
+	return NoneReqBody(), nil
+}
+
 func NoneReqBody() ReqBody {
 	return ReqBody{
 		Type: ReqBodyTypeNone,

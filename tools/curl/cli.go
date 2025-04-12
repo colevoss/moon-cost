@@ -101,7 +101,20 @@ func (c *CurlCLI) Command(ctx context.Context, args []string) error {
 		Env:  env,
 	}
 
-	return manager.Request(ctx, c.Args.Request)
+	res, err := manager.Call(ctx, c.Args.Request)
+
+	if err != nil {
+		return err
+	}
+
+	body, err := io.ReadAll(res.Body)
+
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("body: %v\n", string(body))
+	return nil
 }
 
 func (c *CurlCLI) LoadEnv(args CLIArgs) (Env, error) {
