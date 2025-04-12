@@ -41,10 +41,6 @@ func (c *Curl) Read(reader io.Reader) error {
 	return json.NewDecoder(reader).Decode(c)
 }
 
-func (c *Curl) JSON(data []byte) error {
-	return json.Unmarshal(data, c)
-}
-
 func (c *Curl) Req(name string) (Request, bool) {
 	config, ok := c.Requests[name]
 

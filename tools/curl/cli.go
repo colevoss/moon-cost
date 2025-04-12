@@ -125,11 +125,9 @@ func (c *CurlCLI) LoadEnv(args CLIArgs) (Env, error) {
 	}
 
 	file, err := os.Open(args.Env)
-
 	if err != nil {
 		return env, err
 	}
-
 	defer file.Close()
 
 	env.Read(file)

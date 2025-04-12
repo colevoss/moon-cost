@@ -1,8 +1,8 @@
 package api
 
 import (
+	"encoding/json"
 	"fmt"
-	"io"
 	"moon-cost/router"
 	"moon-cost/services/auth"
 	"net/http"
@@ -19,22 +19,18 @@ func (a *AuthController) Init(api *API) {
 	a.Route.Post("/signup/{id}", a.Signup)
 }
 
+type Response struct {
+	Hello string `json:"hello"`
+}
+
 func (a *AuthController) Signup(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 
-	body, err := io.ReadAll(r.Body)
-
-	token := r.Header.Get("Authorization")
-
-	fmt.Printf("token: %v\n", token)
-
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadGateway)
-		return
+	hello := Response{
+		Hello: id,
 	}
 
-	// time.Sleep(10 * time.Second)
-
-	fmt.Printf("%v\n", string(body))
-	fmt.Fprintf(w, "Hello, %s", id)
+	if err := json.NewEncoder(w).Encode(hello); err != nil {
+		fmt.Printf("err: %s\n", err)
+	}
 }

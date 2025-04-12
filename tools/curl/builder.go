@@ -57,6 +57,8 @@ func (b *Builder) Body(params Params, req Body) error {
 		return err
 	}
 
+	defer body.Close()
+
 	if body.Type == ReqBodyTypeNone {
 		return nil
 	}

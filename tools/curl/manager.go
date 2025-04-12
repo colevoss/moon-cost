@@ -11,10 +11,9 @@ var (
 )
 
 type Manager struct {
-	Client  *http.Client
-	Curl    Curl
-	Env     Env
-	Builder Builder
+	Client *http.Client
+	Curl   Curl
+	Env    Env
 }
 
 func (m *Manager) Call(ctx context.Context, name string) (*http.Response, error) {
