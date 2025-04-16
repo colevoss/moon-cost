@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"net/http"
 	"os"
 )
 
@@ -96,12 +97,20 @@ func (c *CurlCLI) Command(ctx context.Context, args []string) error {
 		return err
 	}
 
-	manager := Manager{
-		Curl: curl,
-		Env:  env,
+	request, ok := curl.Req(c.Args.Request)
+
+	if !ok {
+		return ErrRequestNotFound
 	}
 
-	res, err := manager.Call(ctx, c.Args.Request)
+	manager := Manager{
+		Curl:    curl,
+		Request: request,
+		Env:     env,
+	}
+
+	req, err := manager.Build(ctx)
+	res, err := http.DefaultClient.Do(req)
 
 	if err != nil {
 		return err

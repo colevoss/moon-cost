@@ -7,25 +7,20 @@ import (
 )
 
 var (
-	RequestNotFoundError = errors.New("Request not found in file")
+	ErrRequestNotFound = errors.New("Request not found in file")
 )
 
 type Manager struct {
-	Client *http.Client
-	Curl   Curl
-	Env    Env
+	Client  *http.Client
+	Request Request
+	Curl    Curl
+	Env     Env
 }
 
-func (m *Manager) Call(ctx context.Context, name string) (*http.Response, error) {
-	req, ok := m.Curl.Req(name)
-
-	if !ok {
-		return nil, RequestNotFoundError
-	}
-
+func (m *Manager) Build(ctx context.Context) (*http.Request, error) {
 	params := Params{
 		Env:    m.Env,
-		Params: req.Params,
+		Params: m.Request.Params,
 	}
 
 	var builder Builder
@@ -36,11 +31,15 @@ func (m *Manager) Call(ctx context.Context, name string) (*http.Response, error)
 		return nil, err
 	}
 
-	if err := builder.Body(params, req.Body); err != nil {
+	if err := builder.Headers(params, m.Curl.Headers, m.Request.Headers); err != nil {
 		return nil, err
 	}
 
-	if err := builder.Headers(params, m.Curl.Headers, req.Headers); err != nil {
+	if err := builder.Query(params, m.Curl.Query, m.Request.Query); err != nil {
+		return nil, err
+	}
+
+	if err := builder.Body(params, m.Request.Body); err != nil {
 		return nil, err
 	}
 
@@ -50,14 +49,5 @@ func (m *Manager) Call(ctx context.Context, name string) (*http.Response, error)
 		return nil, err
 	}
 
-	client := m.client()
-	return client.Do(request)
-}
-
-func (m *Manager) client() *http.Client {
-	if m.Client == nil {
-		return http.DefaultClient
-	}
-
-	return m.Client
+	return request, nil
 }

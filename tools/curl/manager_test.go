@@ -30,15 +30,19 @@ func TestManagerCall(t *testing.T) {
 		"url": ts.URL,
 	}
 
+	request, _ := curl.Req("default")
+
 	manager := Manager{
-		Client: ts.Client(),
-		Curl:   curl,
-		Env:    env,
+		Client:  ts.Client(),
+		Curl:    curl,
+		Env:     env,
+		Request: request,
 	}
 
 	ctx := context.Background()
 
-	res, err := manager.Call(ctx, "default")
+	req, err := manager.Build(ctx)
+	res, err := ts.Client().Do(req)
 
 	if err != nil {
 		t.Fatal(err)

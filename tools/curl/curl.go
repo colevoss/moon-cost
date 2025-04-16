@@ -10,6 +10,7 @@ type Curl struct {
 	URL      string             `json:"url"`
 	Requests map[string]Request `json:"requests"`
 	Headers  map[string]string  `json:"headers"`
+	Query    map[string]string  `json:"query"`
 }
 
 type Params struct {
@@ -22,6 +23,7 @@ type Request struct {
 	Headers map[string]string `json:"headers"`
 	Body    Body              `json:"body"`
 	Expect  *Expect           `json:"expect"`
+	Query   map[string]string `json:"query"`
 }
 
 type ReqestParams map[string]string
