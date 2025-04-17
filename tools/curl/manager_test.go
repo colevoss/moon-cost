@@ -13,10 +13,9 @@ func TestManagerCall(t *testing.T) {
 	curl := Curl{
 		Method: http.MethodGet,
 		URL:    "{{.Env.url}}",
-		Requests: map[string]Request{
-			"default": {},
-		},
 	}
+
+	request := Request{}
 
 	expected := "test"
 
@@ -30,10 +29,7 @@ func TestManagerCall(t *testing.T) {
 		"url": ts.URL,
 	}
 
-	request, _ := curl.Req("default")
-
 	manager := Manager{
-		Client:  ts.Client(),
 		Curl:    curl,
 		Env:     env,
 		Request: request,
@@ -41,7 +37,7 @@ func TestManagerCall(t *testing.T) {
 
 	ctx := context.Background()
 
-	req, err := manager.Build(ctx)
+	req, err := BuildRequest(ctx, manager)
 	res, err := ts.Client().Do(req)
 
 	if err != nil {

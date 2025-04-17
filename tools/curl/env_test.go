@@ -59,7 +59,7 @@ func TestEnvparseLineErrs(t *testing.T) {
 }
 
 func TestEnvAddEnviron(t *testing.T) {
-	env := NewEnv()
+	env := Env{}
 
 	environs := []string{
 		"foo=bar",
@@ -97,7 +97,7 @@ func TestEnvReadSuccess(t *testing.T) {
 
 	defer file.Close()
 
-	env := NewEnv()
+	env := Env{}
 
 	if err := env.Read(file); err != nil {
 		t.Errorf("env.Read(./test/env.good) = %s. wanted nil", err)
@@ -133,7 +133,7 @@ func TestEnvReadError(t *testing.T) {
 
 	defer file.Close()
 
-	env := NewEnv()
+	env := Env{}
 
 	err = env.Read(file)
 

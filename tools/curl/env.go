@@ -14,10 +14,6 @@ var (
 
 type Env map[string]string
 
-func NewEnv() Env {
-	return make(map[string]string)
-}
-
 func (e Env) Read(r io.Reader) error {
 	scanner := bufio.NewScanner(r)
 

@@ -3,6 +3,7 @@ package curl
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 )
 
@@ -11,13 +12,12 @@ var (
 )
 
 type Manager struct {
-	Client  *http.Client
-	Request Request
 	Curl    Curl
+	Request Request
 	Env     Env
 }
 
-func (m *Manager) Build(ctx context.Context) (*http.Request, error) {
+func BuildRequest(ctx context.Context, m Manager) (*http.Request, error) {
 	params := Params{
 		Env:    m.Env,
 		Params: m.Request.Params,
@@ -50,4 +50,17 @@ func (m *Manager) Build(ctx context.Context) (*http.Request, error) {
 	}
 
 	return request, nil
+}
+
+func CheckResponse(req Request, res *http.Response) error {
+	// status is default
+	if req.Expect.Status == 0 {
+		return nil
+	}
+
+	if req.Expect.Status == res.StatusCode {
+		return nil
+	}
+
+	return fmt.Errorf("Received status %d. Expected %s", req.Expect.Status, res.Status)
 }

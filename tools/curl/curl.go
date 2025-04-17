@@ -22,7 +22,7 @@ type Request struct {
 	Params  ReqestParams      `json:"params"`
 	Headers map[string]string `json:"headers"`
 	Body    Body              `json:"body"`
-	Expect  *Expect           `json:"expect"`
+	Expect  Expect            `json:"expect"`
 	Query   map[string]string `json:"query"`
 }
 

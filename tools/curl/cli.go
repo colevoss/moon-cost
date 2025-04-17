@@ -76,9 +76,14 @@ func (c *CurlCLI) Init(args []string) error {
 }
 
 func (c *CurlCLI) Command(ctx context.Context, args []string) error {
+	handler := NewJSONLogger(os.Stdout, slog.LevelDebug)
+	logger := slog.New(handler)
+
 	if err := c.Init(args); err != nil {
 		return err
 	}
+
+	logger.Debug("Hello", "hi", c.Args)
 
 	file, err := os.Open(c.Args.File)
 	if err != nil {
@@ -109,7 +114,7 @@ func (c *CurlCLI) Command(ctx context.Context, args []string) error {
 		Env:     env,
 	}
 
-	req, err := manager.Build(ctx)
+	req, err := BuildRequest(ctx, manager)
 	res, err := http.DefaultClient.Do(req)
 
 	if err != nil {
@@ -122,24 +127,27 @@ func (c *CurlCLI) Command(ctx context.Context, args []string) error {
 		return err
 	}
 
-	fmt.Printf("body: %v\n", string(body))
-	return nil
+	logger.Info("", "body", string(body))
+	// fmt.Printf("body: %v", string(body))
+
+	return CheckResponse(request, res)
 }
 
 func (c *CurlCLI) LoadEnv(args CLIArgs) (Env, error) {
-	env := NewEnv()
+	env := Env{}
 
 	if args.Env == "" {
 		return env, nil
 	}
 
 	file, err := os.Open(args.Env)
+
 	if err != nil {
 		return env, err
 	}
+
 	defer file.Close()
 
 	env.Read(file)
-
 	return env, nil
 }
