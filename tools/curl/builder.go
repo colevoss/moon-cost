@@ -40,7 +40,7 @@ func (b *Builder) Method(method string) {
 }
 
 func (b *Builder) URL(params Params, urlTmpl string) error {
-	builderUrl, err := parseString(urlTmpl, params)
+	builderUrl, err := parseString("url", urlTmpl, params)
 
 	if err != nil {
 		return err
@@ -76,7 +76,7 @@ func (b *Builder) Body(params Params, req Body) error {
 		return nil
 	}
 
-	parsedBody, err := parseReader(body.Data(), params)
+	parsedBody, err := parseReader("body", body.Data(), params)
 
 	if err != nil {
 		return err
@@ -94,7 +94,7 @@ func (b *Builder) Headers(params Params, headers ...map[string]string) error {
 		assert.Ensure(h, "Header map should not be nil")
 
 		for k, v := range h {
-			parsedV, err := parseString(v, params)
+			parsedV, err := parseString("headers", v, params)
 
 			if err != nil {
 				return err
@@ -120,7 +120,7 @@ func (b *Builder) Query(params Params, queries ...map[string]string) error {
 
 	for _, query := range queries {
 		for k, v := range query {
-			parsed, err := parseString(v, params)
+			parsed, err := parseString("query", v, params)
 
 			if err != nil {
 				return err
@@ -141,8 +141,8 @@ func (b *Builder) Query(params Params, queries ...map[string]string) error {
 	return nil
 }
 
-func parseString(str string, params Params) (io.Reader, error) {
-	t, err := template.New("").Parse(str)
+func parseString(name string, str string, params Params) (io.Reader, error) {
+	t, err := template.New(name).Option("missingkey=error").Parse(str)
 
 	if err != nil {
 		return nil, err
@@ -157,12 +157,12 @@ func parseString(str string, params Params) (io.Reader, error) {
 	return &buf, nil
 }
 
-func parseReader(reader io.Reader, params Params) (io.Reader, error) {
+func parseReader(name string, reader io.Reader, params Params) (io.Reader, error) {
 	data, err := io.ReadAll(reader)
 
 	if err != nil {
 		return nil, err
 	}
 
-	return parseString(string(data), params)
+	return parseString(name, string(data), params)
 }

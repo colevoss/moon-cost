@@ -14,7 +14,7 @@
       },
 
       "expect": {
-        "status": 300
+        "status": 201
       },
 
       "headers": {},

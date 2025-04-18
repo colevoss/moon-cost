@@ -12,8 +12,8 @@ import (
 func run(ctx context.Context) {
 	log.SetFlags(0)
 
-	curl := curl.CurlCLI{}
-	migration := migration.MigrationCLI{}
+	var curl curl.CurlCLI
+	var migration migration.MigrationCLI
 
 	cli := New()
 	cli.Add("curl", &curl)
@@ -22,7 +22,8 @@ func run(ctx context.Context) {
 	args := os.Args[1:]
 
 	if err := cli.Run(ctx, args); err != nil {
-		log.Fatal(err)
+		// log.Fatal(err)
+		os.Exit(1)
 	}
 }
 
