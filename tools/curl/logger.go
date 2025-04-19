@@ -12,11 +12,8 @@ import (
 	// "moon-cost/logging"
 )
 
-type DiscardLogger struct{}
-
-func (d DiscardLogger) Write(p []byte) (int, error) {
-	return 0, nil
-}
+// Level between debug and info
+const LevelVerbose = slog.Level(-2)
 
 type JSONHandler struct {
 	slog.Handler
@@ -26,8 +23,7 @@ type JSONHandler struct {
 
 func NewJSONHandler(out io.Writer, level slog.Level, enabled bool) *JSONHandler {
 	return &JSONHandler{
-		logger:  log.New(out, "", 0),
-		enabled: enabled,
+		logger: log.New(out, "", 0),
 		Handler: slog.NewJSONHandler(out, &slog.HandlerOptions{
 			Level: level,
 		}),
@@ -69,29 +65,17 @@ func (jl *JSONHandler) Enabled(ctx context.Context, level slog.Level) bool {
 
 type StandardHandler struct {
 	slog.Handler
-	logger  *log.Logger
-	enabled bool
+	logger *log.Logger
 }
 
-func NewStandardHandler(out io.Writer, level slog.Level, enabled bool) *StandardHandler {
+func NewStandardHandler(out io.Writer, level slog.Level) *StandardHandler {
 	return &StandardHandler{
-		logger:  log.New(out, "", 0),
-		enabled: enabled,
+		logger: log.New(out, "", 0),
 		Handler: slog.NewJSONHandler(out, &slog.HandlerOptions{
 			Level: level,
 		}),
 	}
 }
-
-func (sl *StandardHandler) Enabled(ctx context.Context, level slog.Level) bool {
-	if !sl.enabled {
-		return false
-	}
-
-	return sl.Handler.Enabled(ctx, level)
-}
-
-var maxLevelLength = 5 + 2 // 5 for ERROR 2 for  []
 
 func (sl *StandardHandler) Handle(ctx context.Context, record slog.Record) error {
 	fields := make(map[string]any, record.NumAttrs())
@@ -107,6 +91,8 @@ func (sl *StandardHandler) Handle(ctx context.Context, record slog.Record) error
 	switch record.Level {
 	case slog.LevelDebug:
 		color = logging.ColorCyan
+	case LevelVerbose:
+		color = logging.ColorLightMagenta
 	case slog.LevelInfo:
 		color = logging.ColorGreen
 	case slog.LevelWarn:
@@ -115,7 +101,15 @@ func (sl *StandardHandler) Handle(ctx context.Context, record slog.Record) error
 		color = logging.ColorRed
 	}
 
-	level := fmt.Sprintf("[%s]", record.Level.String())
+	var levelBase string
+
+	if record.Level == LevelVerbose {
+		levelBase = "VERBOSE"
+	} else {
+		levelBase = record.Level.String()
+	}
+
+	level := fmt.Sprintf("[%s]", levelBase)
 
 	var b strings.Builder
 

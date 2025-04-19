@@ -15,7 +15,6 @@ import (
 
 type CurlCLI struct {
 	verbose bool
-	logger  *slog.Logger
 	File    io.Reader
 	EnvFile Env
 
@@ -89,25 +88,22 @@ func (c *CurlCLI) Init(args []string) error {
 	}
 
 	c.Args = cliArgs
-	c.logger = initLogger(cliArgs)
+	initLogger(cliArgs)
 
 	return nil
 }
 
-func initLogger(args CLIArgs) *slog.Logger {
+func initLogger(args CLIArgs) {
 	var handler slog.Handler
 	var out io.Writer
 
-	level := slog.LevelError
+	level := slog.LevelInfo
 	enabled := true
-
-	if args.Suppress {
-		enabled = false
-	}
 
 	// This should imply that debug takes precedence
 	if args.Verbose {
-		level = slog.LevelInfo
+		// level = slog.LevelInfo
+		level = LevelVerbose
 	}
 	if args.Debug {
 		level = slog.LevelDebug
@@ -115,13 +111,17 @@ func initLogger(args CLIArgs) *slog.Logger {
 
 	out = os.Stdout
 
-	if args.JSON {
-		handler = NewJSONHandler(out, level, enabled)
+	if args.Suppress {
+		handler = slog.DiscardHandler
 	} else {
-		handler = NewStandardHandler(out, level, enabled)
+		if args.JSON {
+			handler = NewJSONHandler(out, level, enabled)
+		} else {
+			handler = NewStandardHandler(out, level)
+		}
 	}
 
-	return slog.New(handler)
+	slog.SetDefault(slog.New(handler))
 }
 
 func (c *CurlCLI) Command(ctx context.Context, args []string) error {
@@ -129,24 +129,24 @@ func (c *CurlCLI) Command(ctx context.Context, args []string) error {
 		return err
 	}
 
-	c.logger.Debug("Opening curl file", slog.String("file", c.Args.File))
+	slog.Debug("Opening curl file", slog.String("file", c.Args.File))
 
 	file, err := os.Open(c.Args.File)
 	if err != nil {
-		c.logger.Error(err.Error())
+		slog.Error(err.Error())
 		return err
 	}
 	defer file.Close()
 
 	var curl Curl
 	if err := curl.Read(file); err != nil {
-		c.logger.Error(err.Error(), slog.String("file", c.Args.File))
+		slog.Error(err.Error(), slog.String("file", c.Args.File))
 		return err
 	}
 
-	c.logger.Debug("Parsed curl file", slog.String("file", c.Args.File))
+	slog.Debug("Parsed curl file", slog.String("file", c.Args.File))
 
-	env, err := c.LoadEnv(c.Args)
+	env, err := c.LoadEnv(ctx, c.Args)
 
 	if err != nil {
 		return err
@@ -155,7 +155,7 @@ func (c *CurlCLI) Command(ctx context.Context, args []string) error {
 	request, ok := curl.Req(c.Args.Request)
 
 	if !ok {
-		c.logger.Error(ErrRequestNotFound.Error(), "request", c.Args.Request)
+		slog.Error(ErrRequestNotFound.Error(), "request", c.Args.Request)
 		return ErrRequestNotFound
 	}
 
@@ -165,12 +165,12 @@ func (c *CurlCLI) Command(ctx context.Context, args []string) error {
 		Env:     env,
 	}
 
-	c.logger.Debug("Building request")
+	slog.Debug("Building request")
 
 	req, err := BuildRequest(ctx, manager)
 
 	if err != nil {
-		c.logger.Error(err.Error())
+		slog.Error(err.Error())
 		return err
 	}
 
@@ -181,42 +181,42 @@ func (c *CurlCLI) Command(ctx context.Context, args []string) error {
 	duration := end.Sub(start)
 
 	if err != nil {
-		c.logger.Error(err.Error())
+		slog.Error(err.Error())
 		return err
 	}
 
 	if err := c.logResponse(ctx, res, request, duration); err != nil {
-		c.logger.Error(err.Error())
+		slog.Error(err.Error())
 		return err
 	}
 
 	return CheckResponse(request, res)
 }
 
-func (c *CurlCLI) LoadEnv(args CLIArgs) (Env, error) {
+func (c *CurlCLI) LoadEnv(ctx context.Context, args CLIArgs) (Env, error) {
 	env := Env{}
 
 	if args.Env == "" {
 		return env, nil
 	}
 
-	c.logger.Debug("Opening env file", slog.String("envFile", args.Env))
+	slog.Debug("Opening env file", slog.String("envFile", args.Env))
 	file, err := os.Open(args.Env)
 
 	if err != nil {
-		c.logger.Error(err.Error(), slog.String("envFile", args.Env))
+		slog.Error(err.Error(), slog.String("envFile", args.Env))
 		return env, err
 	}
 
 	defer file.Close()
 
-	c.logger.Debug("Parsing env file", slog.String("envFile", args.Env))
+	slog.Debug("Parsing env file", slog.String("envFile", args.Env))
 
 	if err := env.Read(file); err != nil {
-		c.logger.Error(fmt.Sprintf("%s:%s", args.Env, err))
+		slog.Error(fmt.Sprintf("%s:%s", args.Env, err))
 	}
 
-	c.logger.Debug("Parsed env file", slog.String("envFile", args.Env))
+	slog.Log(ctx, LevelVerbose, "Parsed env file", slog.String("envFile", args.Env))
 
 	return env, nil
 }
@@ -225,7 +225,7 @@ func (c *CurlCLI) logRequest(req *http.Request) {
 	url := req.URL.String()
 	method := req.Method
 
-	c.logger.Info(fmt.Sprintf("%s %s", method, url))
+	slog.Info(fmt.Sprintf("%s %s", method, url))
 }
 
 func (c *CurlCLI) logResponse(ctx context.Context, res *http.Response, request Request, duration time.Duration) error {
@@ -272,7 +272,7 @@ func (c *CurlCLI) logResponse(ctx context.Context, res *http.Response, request R
 		}
 	}
 
-	c.logger.Log(
+	slog.Log(
 		ctx,
 		level,
 		b.String(),
