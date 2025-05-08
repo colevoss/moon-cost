@@ -21,7 +21,7 @@ type JSONHandler struct {
 	logger  *log.Logger
 }
 
-func NewJSONHandler(out io.Writer, level slog.Level, enabled bool) *JSONHandler {
+func NewJSONHandler(out io.Writer, level slog.Level) *JSONHandler {
 	return &JSONHandler{
 		logger: log.New(out, "", 0),
 		Handler: slog.NewJSONHandler(out, &slog.HandlerOptions{
@@ -54,14 +54,6 @@ func NewJSONHandler(out io.Writer, level slog.Level, enabled bool) *JSONHandler 
 //
 // 	return nil
 // }
-
-func (jl *JSONHandler) Enabled(ctx context.Context, level slog.Level) bool {
-	if !jl.enabled {
-		return false
-	}
-
-	return jl.Handler.Enabled(ctx, level)
-}
 
 type StandardHandler struct {
 	slog.Handler

@@ -29,6 +29,7 @@ type CLIArgs struct {
 	Debug    bool
 	Suppress bool
 	JSON     bool
+	Pretty   bool
 }
 
 const (
@@ -39,6 +40,7 @@ const (
 	DebugFlagDescription    = "Enables debug logging"
 	SuppressFlagDescription = "Suppresses all logs"
 	JSONFlagDescription     = "Outputs all logs as json"
+	PrettyFlagDescription   = "Pretty prints the json (only used in json mode)"
 	EnvFlagDescription      = "Path to env file to load"
 )
 
@@ -73,6 +75,9 @@ func (c *CLIArgs) Parse(args []string) error {
 	fs.BoolVar(&c.JSON, "json", false, JSONFlagDescription)
 	fs.BoolVar(&c.JSON, "j", false, JSONFlagDescription+" (shorthand)")
 
+	fs.BoolVar(&c.Pretty, "pretty", false, PrettyFlagDescription)
+	fs.BoolVar(&c.Pretty, "p", false, PrettyFlagDescription+"(shorthand)")
+
 	if err := fs.Parse(args[1:]); err != nil {
 		return err
 	}
@@ -95,27 +100,26 @@ func (c *CurlCLI) Init(args []string) error {
 
 func initLogger(args CLIArgs) {
 	var handler slog.Handler
-	var out io.Writer
+	// var out io.Writer
+	out := os.Stdout
 
 	level := slog.LevelInfo
-	enabled := true
 
 	// This should imply that debug takes precedence
 	if args.Verbose {
-		// level = slog.LevelInfo
 		level = LevelVerbose
 	}
+
 	if args.Debug {
 		level = slog.LevelDebug
 	}
-
-	out = os.Stdout
 
 	if args.Suppress {
 		handler = slog.DiscardHandler
 	} else {
 		if args.JSON {
-			handler = NewJSONHandler(out, level, enabled)
+			level = slog.LevelError
+			handler = NewJSONHandler(out, level)
 		} else {
 			handler = NewStandardHandler(out, level)
 		}
@@ -185,7 +189,14 @@ func (c *CurlCLI) Command(ctx context.Context, args []string) error {
 		return err
 	}
 
-	if err := c.logResponse(ctx, res, request, duration); err != nil {
+	result, err := NewResult(c.Args.Request, res, request, duration)
+
+	if err != nil {
+		slog.Error(err.Error())
+		return err
+	}
+
+	if err := c.logResult(ctx, result); err != nil {
 		slog.Error(err.Error())
 		return err
 	}
@@ -228,27 +239,41 @@ func (c *CurlCLI) logRequest(req *http.Request) {
 	slog.Info(fmt.Sprintf("%s %s", method, url))
 }
 
-func (c *CurlCLI) logResponse(ctx context.Context, res *http.Response, request Request, duration time.Duration) error {
-	level := slog.LevelInfo
-	url := res.Request.URL.String()
-	method := res.Request.Method
-	// headers := res.Header
-	status := res.StatusCode
+func (c *CurlCLI) logResult(ctx context.Context, result Result) error {
+	// TODO: support pretty printing
+	if c.Args.JSON {
+		var data []byte
+		var err error
 
-	attrs := []any{
-		slog.String("request", c.Args.Request),
-		slog.Bool("response", true),
-		slog.Int("status", status),
-		slog.String("url", url),
-		slog.String("method", method),
-		slog.Int64("durationMs", duration.Milliseconds()),
+		if c.Args.Pretty {
+			data, err = json.MarshalIndent(result, "", "  ")
+		} else {
+			data, err = json.Marshal(result)
+		}
+
+		if err != nil {
+			return err
+		}
+
+		fmt.Println(string(data))
+		return nil
 	}
 
-	// if len(headers) > 0 {
-	// 	attrs = append(attrs, slog.Any("headers", headers))
-	// }
+	return c.logResponse(ctx, result)
+}
 
-	body, err := c.getBodyData(res)
+func (c *CurlCLI) logResponse(ctx context.Context, result Result) error {
+	level := slog.LevelInfo
+
+	attrs := []any{
+		slog.String("request", result.Name),
+		slog.Int("status", result.Status),
+		slog.String("url", result.URL),
+		slog.String("method", result.Method),
+		slog.Int64("durationMs", result.DurationMS),
+	}
+
+	body, err := result.BodyData()
 
 	if err != nil {
 		return err
@@ -258,17 +283,21 @@ func (c *CurlCLI) logResponse(ctx context.Context, res *http.Response, request R
 
 	var b strings.Builder
 
-	b.WriteString(fmt.Sprintf("(%s) %s", duration.Truncate(time.Millisecond).String(), res.Status))
+	b.WriteString(fmt.Sprintf("(%s) %s", result.Duration.Truncate(time.Millisecond).String(), result.Response.Status))
 
-	if request.Expect.Status != 0 {
-		expected := request.Expect.Status
-		pass := res.StatusCode == expected
+	if result.Expected == 0 {
+		if result.Response.StatusCode >= 400 {
+			level = slog.LevelWarn
+		}
+	} else {
+		expected := result.Expected
+		pass := result.Response.StatusCode == expected
 		attrs = append(attrs, slog.Bool("pass", pass))
 		attrs = append(attrs, slog.Int("expected", expected))
 
 		if !pass {
 			level = slog.LevelWarn
-			b.WriteString(fmt.Sprintf(". Want %d %s", request.Expect.Status, http.StatusText(request.Expect.Status)))
+			b.WriteString(fmt.Sprintf(". Want %d %s", result.Expected, http.StatusText(result.Expected)))
 		}
 	}
 
@@ -280,26 +309,4 @@ func (c *CurlCLI) logResponse(ctx context.Context, res *http.Response, request R
 	)
 
 	return nil
-}
-
-func (c *CurlCLI) getBodyData(res *http.Response) (any, error) {
-	data, err := io.ReadAll(res.Body)
-
-	if err != nil {
-		return nil, err
-	}
-
-	if res.Header.Get("Content-Type") != "application/json" {
-		return string(data), nil
-	}
-
-	var body map[string]any
-
-	err = json.Unmarshal(data, &body)
-
-	if err != nil {
-		return "", err
-	}
-
-	return body, nil
 }
