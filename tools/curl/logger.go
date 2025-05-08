@@ -12,9 +12,6 @@ import (
 	// "moon-cost/logging"
 )
 
-// Level between debug and info
-const LevelVerbose = slog.Level(-2)
-
 type JSONHandler struct {
 	slog.Handler
 	enabled bool
@@ -83,7 +80,7 @@ func (sl *StandardHandler) Handle(ctx context.Context, record slog.Record) error
 	switch record.Level {
 	case slog.LevelDebug:
 		color = logging.ColorCyan
-	case LevelVerbose:
+	case logging.LevelVerbose:
 		color = logging.ColorLightMagenta
 	case slog.LevelInfo:
 		color = logging.ColorGreen
@@ -95,7 +92,7 @@ func (sl *StandardHandler) Handle(ctx context.Context, record slog.Record) error
 
 	var levelBase string
 
-	if record.Level == LevelVerbose {
+	if record.Level == logging.LevelVerbose {
 		levelBase = "VERBOSE"
 	} else {
 		levelBase = record.Level.String()

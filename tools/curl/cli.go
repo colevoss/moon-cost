@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"moon-cost/logging"
 	"net/http"
 	"os"
 	"strings"
@@ -110,7 +111,7 @@ func initLogger(args CLIArgs) {
 
 	// This should imply that debug takes precedence
 	if args.Verbose {
-		level = LevelVerbose
+		level = logging.LevelVerbose
 	}
 
 	if args.Debug {
@@ -135,66 +136,34 @@ func (c *CurlCLI) Command(ctx context.Context, args []string) error {
 		return err
 	}
 
-	slog.Debug("opening curl file", slog.String("file", c.Args.File))
+	var client Client
 
-	file, err := os.Open(c.Args.File)
-	if err != nil {
-		slog.Error(err.Error())
-		return err
-	}
-	defer file.Close()
+	slog.Debug("loading curl file", slog.String("file", c.Args.File))
 
-	var curl Curl
-	if err := curl.Read(file); err != nil {
-		slog.Error(err.Error(), slog.String("file", c.Args.File))
-		return err
-	}
-
-	slog.Log(ctx, LevelVerbose, "parsed curl file", slog.String("file", c.Args.File))
-
-	env, err := c.LoadEnv(ctx, c.Args)
-
-	if err != nil {
-		return err
-	}
-
-	request, ok := curl.Req(c.Args.Request)
-
-	if !ok {
-		slog.Error(ErrRequestNotFound.Error(), "request", c.Args.Request)
-		return ErrRequestNotFound
-	}
-
-	manager := Manager{
-		Curl:    curl,
-		Request: request,
-		Env:     env,
-	}
-
-	slog.Debug("building request")
-
-	req, err := BuildRequest(ctx, manager)
-
-	if err != nil {
+	if err := client.LoadCurl(ctx, c.Args.File); err != nil {
 		slog.Error(err.Error())
 		return err
 	}
 
-	c.logRequest(ctx, req, request)
+	slog.Log(ctx, logging.LevelVerbose, "curl file loaded", slog.String("file", c.Args.File))
 
-	start := time.Now()
+	if c.Args.Env != "" {
+		slog.Debug("loading env file", slog.String("file", c.Args.Env))
 
-	res, err := http.DefaultClient.Do(req)
+		if err := client.LoadEnv(ctx, c.Args.Env); err != nil {
+			slog.Error(err.Error())
+			return err
+		}
 
-	end := time.Now()
-	duration := end.Sub(start)
+		slog.Log(ctx, logging.LevelVerbose, "env file loaded", slog.String("file", c.Args.Env))
+	}
 
-	if err != nil {
+	if err := client.Use(c.Args.Request); err != nil {
 		slog.Error(err.Error())
 		return err
 	}
 
-	result, err := NewResult(c.Args.Request, res, request, duration)
+	result, err := client.Execute(ctx)
 
 	if err != nil {
 		slog.Error(err.Error())
@@ -206,7 +175,7 @@ func (c *CurlCLI) Command(ctx context.Context, args []string) error {
 		return err
 	}
 
-	return CheckResponse(request, res)
+	return nil
 }
 
 func (c *CurlCLI) LoadEnv(ctx context.Context, args CLIArgs) (Env, error) {
@@ -232,18 +201,9 @@ func (c *CurlCLI) LoadEnv(ctx context.Context, args CLIArgs) (Env, error) {
 		slog.Error(fmt.Sprintf("%s:%s", args.Env, err))
 	}
 
-	slog.Log(ctx, LevelVerbose, "parsed env file", slog.String("envFile", args.Env))
+	slog.Log(ctx, logging.LevelVerbose, "parsed env file", slog.String("envFile", args.Env))
 
 	return env, nil
-}
-
-func (c *CurlCLI) logRequest(ctx context.Context, req *http.Request, request Request) {
-	url := req.URL.String()
-	method := req.Method
-
-	slog.Log(ctx, LevelVerbose, "sending request", "request", request)
-
-	slog.Info(fmt.Sprintf("%s %s", method, url))
 }
 
 func (c *CurlCLI) logResult(ctx context.Context, result Result) error {
