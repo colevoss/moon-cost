@@ -35,6 +35,7 @@ func NewResult(reqName string, res *http.Response, req Request, duration time.Du
 	result.Expected = req.Expect.Status
 	result.Name = reqName
 	result.DurationMS = duration.Milliseconds()
+	result.Duration = duration
 
 	bodyData, err := io.ReadAll(res.Body)
 

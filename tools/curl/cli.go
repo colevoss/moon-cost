@@ -29,7 +29,7 @@ type CLIArgs struct {
 	Debug    bool
 	Suppress bool
 	JSON     bool
-	Pretty   bool
+	Raw      bool
 }
 
 const (
@@ -40,7 +40,7 @@ const (
 	DebugFlagDescription    = "Enables debug logging"
 	SuppressFlagDescription = "Suppresses all logs"
 	JSONFlagDescription     = "Outputs all logs as json"
-	PrettyFlagDescription   = "Pretty prints the json (only used in json mode)"
+	RawFlagDescription      = "Prints JSON without indentation (only used in json mode)"
 	EnvFlagDescription      = "Path to env file to load"
 )
 
@@ -75,8 +75,7 @@ func (c *CLIArgs) Parse(args []string) error {
 	fs.BoolVar(&c.JSON, "json", false, JSONFlagDescription)
 	fs.BoolVar(&c.JSON, "j", false, JSONFlagDescription+" (shorthand)")
 
-	fs.BoolVar(&c.Pretty, "pretty", false, PrettyFlagDescription)
-	fs.BoolVar(&c.Pretty, "p", false, PrettyFlagDescription+"(shorthand)")
+	fs.BoolVar(&c.Raw, "raw", false, RawFlagDescription)
 
 	if err := fs.Parse(args[1:]); err != nil {
 		return err
@@ -105,6 +104,10 @@ func initLogger(args CLIArgs) {
 
 	level := slog.LevelInfo
 
+	if args.JSON {
+		level = slog.LevelError
+	}
+
 	// This should imply that debug takes precedence
 	if args.Verbose {
 		level = LevelVerbose
@@ -118,7 +121,6 @@ func initLogger(args CLIArgs) {
 		handler = slog.DiscardHandler
 	} else {
 		if args.JSON {
-			level = slog.LevelError
 			handler = NewJSONHandler(out, level)
 		} else {
 			handler = NewStandardHandler(out, level)
@@ -133,7 +135,7 @@ func (c *CurlCLI) Command(ctx context.Context, args []string) error {
 		return err
 	}
 
-	slog.Debug("Opening curl file", slog.String("file", c.Args.File))
+	slog.Debug("opening curl file", slog.String("file", c.Args.File))
 
 	file, err := os.Open(c.Args.File)
 	if err != nil {
@@ -148,7 +150,7 @@ func (c *CurlCLI) Command(ctx context.Context, args []string) error {
 		return err
 	}
 
-	slog.Debug("Parsed curl file", slog.String("file", c.Args.File))
+	slog.Log(ctx, LevelVerbose, "parsed curl file", slog.String("file", c.Args.File))
 
 	env, err := c.LoadEnv(ctx, c.Args)
 
@@ -169,7 +171,7 @@ func (c *CurlCLI) Command(ctx context.Context, args []string) error {
 		Env:     env,
 	}
 
-	slog.Debug("Building request")
+	slog.Debug("building request")
 
 	req, err := BuildRequest(ctx, manager)
 
@@ -178,9 +180,12 @@ func (c *CurlCLI) Command(ctx context.Context, args []string) error {
 		return err
 	}
 
-	c.logRequest(req)
+	c.logRequest(ctx, req, request)
+
 	start := time.Now()
+
 	res, err := http.DefaultClient.Do(req)
+
 	end := time.Now()
 	duration := end.Sub(start)
 
@@ -211,7 +216,7 @@ func (c *CurlCLI) LoadEnv(ctx context.Context, args CLIArgs) (Env, error) {
 		return env, nil
 	}
 
-	slog.Debug("Opening env file", slog.String("envFile", args.Env))
+	slog.Debug("opening env file", slog.String("envFile", args.Env))
 	file, err := os.Open(args.Env)
 
 	if err != nil {
@@ -221,20 +226,22 @@ func (c *CurlCLI) LoadEnv(ctx context.Context, args CLIArgs) (Env, error) {
 
 	defer file.Close()
 
-	slog.Debug("Parsing env file", slog.String("envFile", args.Env))
+	slog.Debug("parsing env file", slog.String("envFile", args.Env))
 
 	if err := env.Read(file); err != nil {
 		slog.Error(fmt.Sprintf("%s:%s", args.Env, err))
 	}
 
-	slog.Log(ctx, LevelVerbose, "Parsed env file", slog.String("envFile", args.Env))
+	slog.Log(ctx, LevelVerbose, "parsed env file", slog.String("envFile", args.Env))
 
 	return env, nil
 }
 
-func (c *CurlCLI) logRequest(req *http.Request) {
+func (c *CurlCLI) logRequest(ctx context.Context, req *http.Request, request Request) {
 	url := req.URL.String()
 	method := req.Method
+
+	slog.Log(ctx, LevelVerbose, "sending request", "request", request)
 
 	slog.Info(fmt.Sprintf("%s %s", method, url))
 }
@@ -245,10 +252,10 @@ func (c *CurlCLI) logResult(ctx context.Context, result Result) error {
 		var data []byte
 		var err error
 
-		if c.Args.Pretty {
-			data, err = json.MarshalIndent(result, "", "  ")
-		} else {
+		if c.Args.Raw {
 			data, err = json.Marshal(result)
+		} else {
+			data, err = json.MarshalIndent(result, "", "  ")
 		}
 
 		if err != nil {
@@ -283,7 +290,7 @@ func (c *CurlCLI) logResponse(ctx context.Context, result Result) error {
 
 	var b strings.Builder
 
-	b.WriteString(fmt.Sprintf("(%s) %s", result.Duration.Truncate(time.Millisecond).String(), result.Response.Status))
+	b.WriteString(fmt.Sprintf("(%s) %s", result.Duration.Truncate(time.Millisecond*1).String(), result.Response.Status))
 
 	if result.Expected == 0 {
 		if result.Response.StatusCode >= 400 {
@@ -297,7 +304,7 @@ func (c *CurlCLI) logResponse(ctx context.Context, result Result) error {
 
 		if !pass {
 			level = slog.LevelWarn
-			b.WriteString(fmt.Sprintf(". Want %d %s", result.Expected, http.StatusText(result.Expected)))
+			b.WriteString(fmt.Sprintf(". want %d %s", result.Expected, http.StatusText(result.Expected)))
 		}
 	}
 
