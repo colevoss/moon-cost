@@ -55,6 +55,8 @@ func (c *Client) LoadEnv(envFile string) error {
 
 	c.Env = env
 
+	c.Env.AddEnviron(os.Environ())
+
 	return nil
 }
 

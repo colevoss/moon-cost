@@ -2,6 +2,7 @@ package env
 
 import (
 	"moon-cost/moontest"
+	"os"
 	"testing"
 )
 
@@ -138,4 +139,34 @@ func TestEnvReadError(t *testing.T) {
 	if err.Error() != expected {
 		t.Errorf("env.Read() = %s. want %s", err, expected)
 	}
+}
+
+func TestEnvLoad(t *testing.T) {
+	env, err := Load("./test-fixtures/test-env-load.env")
+
+	if err != nil {
+		t.Errorf("Load() = _, %s. want nil error", err)
+	}
+
+	tests := []struct {
+		name     string
+		expected string
+	}{
+		{"TEST_VAR", "test-var"},
+		{"OTHER_VAR", "other-var"},
+	}
+
+	for _, test := range tests {
+		envVar := os.Getenv(test.name)
+
+		if envVar != test.expected {
+			t.Errorf("environment variable %s = %s. want %s", test.name, envVar, test.expected)
+		}
+	}
+
+	t.Cleanup(func() {
+		for k := range env {
+			os.Unsetenv(k)
+		}
+	})
 }
