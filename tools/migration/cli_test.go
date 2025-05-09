@@ -3,7 +3,6 @@ package migration
 import (
 	"context"
 	"moon-cost/common"
-	"moon-cost/moontest"
 	"os"
 	"path/filepath"
 	"testing"
@@ -30,15 +29,24 @@ func TestCreateCLI(t *testing.T) {
 	for _, test := range tests {
 		err := cli.Command(ctx, test.args)
 
-		moontest.AssertNilError(t, err)
+		if err != nil {
+			t.Errorf("cli.Command() = %s. want nil", err)
+		}
+
 		fileName := makeMigrationFileName(time, test.migrationName)
 		path := filepath.Join(dir, fileName)
 
 		stat, err := os.Stat(path)
 
-		moontest.AssertNilError(t, err)
+		if err != nil {
+			t.Errorf("os.State = _, %s. want nil", err)
+		}
 
-		moontest.Assert(t, stat.Name() == fileName, "Expected file %s to be at path %s", fileName, path)
+		statName := stat.Name()
+
+		if statName != fileName {
+			t.Errorf("created filename is %s. want %s", statName, fileName)
+		}
 	}
 }
 

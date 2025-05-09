@@ -1,10 +1,11 @@
-package curl
+package env
 
 import (
 	"bufio"
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"strings"
 )
 
@@ -13,10 +14,6 @@ var (
 )
 
 type Env map[string]string
-
-func NewEnv() Env {
-	return make(map[string]string)
-}
 
 func (e Env) Read(r io.Reader) error {
 	scanner := bufio.NewScanner(r)
@@ -59,6 +56,35 @@ func (e Env) AddEnviron(environ []string) error {
 	}
 
 	return nil
+}
+
+func Load(path string) (Env, error) {
+	env := Env{}
+
+	if path == "" {
+		path = "./.env"
+	}
+
+	file, err := os.Open(path)
+
+	if err != nil {
+		return env, err
+	}
+
+	defer file.Close()
+
+	if err := env.Read(file); err != nil {
+		return env, err
+	}
+
+	var errs error
+
+	for k, v := range env {
+		err := os.Setenv(k, v)
+		errs = errors.Join(errs, err)
+	}
+
+	return env, errs
 }
 
 func parseLine(line string) (string, string, error) {

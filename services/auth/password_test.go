@@ -1,7 +1,6 @@
 package auth
 
 import (
-	"moon-cost/moontest"
 	"testing"
 )
 
@@ -26,12 +25,16 @@ func TestComparePassword(t *testing.T) {
 	for _, test := range tests {
 		matches := comparePasswords(test.expected, test.actual)
 
-		moontest.Assert(t, matches == test.matches, "Expected %v to match %v", test.expected, test.actual)
+		if matches != test.matches {
+			t.Errorf("comparePasswords(%s, %s) == %t. want %t", test.expected, test.actual, matches, test.matches)
+		}
 	}
 }
 
 func TestSha256SaltedPassword(t *testing.T) {
 	value := testSha256SaltedPass.Value()
 
-	moontest.Assert(t, testSha256SaltedPassString == value, "Expected %s. Got %s", testSha256SaltedPassString, value)
+	if value != testSha256SaltedPassString {
+		t.Errorf("Sha256SaltedPassword.Value() == %s. want %s", value, testSha256SaltedPassString)
+	}
 }

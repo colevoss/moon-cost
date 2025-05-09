@@ -3,6 +3,7 @@ package curl
 import (
 	"encoding/json"
 	"io"
+	"moon-cost/tools/env"
 )
 
 type Curl struct {
@@ -10,10 +11,11 @@ type Curl struct {
 	URL      string             `json:"url"`
 	Requests map[string]Request `json:"requests"`
 	Headers  map[string]string  `json:"headers"`
+	Query    map[string]string  `json:"query"`
 }
 
 type Params struct {
-	Env    Env
+	Env    env.Env
 	Params ReqestParams
 }
 
@@ -21,7 +23,8 @@ type Request struct {
 	Params  ReqestParams      `json:"params"`
 	Headers map[string]string `json:"headers"`
 	Body    Body              `json:"body"`
-	Expect  *Expect           `json:"expect"`
+	Expect  Expect            `json:"expect"`
+	Query   map[string]string `json:"query"`
 }
 
 type ReqestParams map[string]string

@@ -6,18 +6,25 @@ import (
 	"io"
 	"moon-cost/assert"
 	"net/http"
+	"net/url"
 	"text/template"
 )
 
 type Builder struct {
-	url    string
+	url    *url.URL
 	method string
 	body   io.Reader
 	header http.Header
+	query  url.Values
 }
 
 func (b *Builder) Build(ctx context.Context) (*http.Request, error) {
-	r, err := http.NewRequestWithContext(ctx, b.method, b.url, b.body)
+	assert.Ensure(b.url, "Url must not be nil")
+
+	b.url.RawQuery = b.query.Encode()
+	urlStr := b.url.String()
+
+	r, err := http.NewRequestWithContext(ctx, b.method, urlStr, b.body)
 
 	if err != nil {
 		return nil, err
@@ -32,8 +39,8 @@ func (b *Builder) Method(method string) {
 	b.method = method
 }
 
-func (b *Builder) URL(params Params, url string) error {
-	builderUrl, err := parseString(url, params)
+func (b *Builder) URL(params Params, urlTmpl string) error {
+	builderUrl, err := parseString("url", urlTmpl, params)
 
 	if err != nil {
 		return err
@@ -45,7 +52,13 @@ func (b *Builder) URL(params Params, url string) error {
 		return err
 	}
 
-	b.url = string(urlStr)
+	u, err := url.Parse(string(urlStr))
+
+	if err != nil {
+		return err
+	}
+
+	b.url = u
 
 	return nil
 }
@@ -63,7 +76,7 @@ func (b *Builder) Body(params Params, req Body) error {
 		return nil
 	}
 
-	parsedBody, err := parseReader(body.Data(), params)
+	parsedBody, err := parseReader("body", body.Data(), params)
 
 	if err != nil {
 		return err
@@ -81,7 +94,7 @@ func (b *Builder) Headers(params Params, headers ...map[string]string) error {
 		assert.Ensure(h, "Header map should not be nil")
 
 		for k, v := range h {
-			parsedV, err := parseString(v, params)
+			parsedV, err := parseString("headers", v, params)
 
 			if err != nil {
 				return err
@@ -102,8 +115,34 @@ func (b *Builder) Headers(params Params, headers ...map[string]string) error {
 	return nil
 }
 
-func parseString(str string, params Params) (io.Reader, error) {
-	t, err := template.New("").Parse(str)
+func (b *Builder) Query(params Params, queries ...map[string]string) error {
+	values := url.Values{}
+
+	for _, query := range queries {
+		for k, v := range query {
+			parsed, err := parseString("query", v, params)
+
+			if err != nil {
+				return err
+			}
+
+			value, err := io.ReadAll(parsed)
+
+			if err != nil {
+				return err
+			}
+
+			values.Set(k, string(value))
+		}
+	}
+
+	b.query = values
+
+	return nil
+}
+
+func parseString(name string, str string, params Params) (io.Reader, error) {
+	t, err := template.New(name).Option("missingkey=error").Parse(str)
 
 	if err != nil {
 		return nil, err
@@ -118,12 +157,12 @@ func parseString(str string, params Params) (io.Reader, error) {
 	return &buf, nil
 }
 
-func parseReader(reader io.Reader, params Params) (io.Reader, error) {
+func parseReader(name string, reader io.Reader, params Params) (io.Reader, error) {
 	data, err := io.ReadAll(reader)
 
 	if err != nil {
 		return nil, err
 	}
 
-	return parseString(string(data), params)
+	return parseString(name, string(data), params)
 }

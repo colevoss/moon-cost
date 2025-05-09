@@ -30,6 +30,9 @@ func (a *AuthController) Signup(w http.ResponseWriter, r *http.Request) {
 		Hello: id,
 	}
 
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+
 	if err := json.NewEncoder(w).Encode(hello); err != nil {
 		fmt.Printf("err: %s\n", err)
 	}

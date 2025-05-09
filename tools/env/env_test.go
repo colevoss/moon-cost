@@ -1,6 +1,7 @@
-package curl
+package env
 
 import (
+	"moon-cost/moontest"
 	"os"
 	"testing"
 )
@@ -59,7 +60,7 @@ func TestEnvparseLineErrs(t *testing.T) {
 }
 
 func TestEnvAddEnviron(t *testing.T) {
-	env := NewEnv()
+	env := Env{}
 
 	environs := []string{
 		"foo=bar",
@@ -89,15 +90,11 @@ func TestEnvAddEnviron(t *testing.T) {
 }
 
 func TestEnvReadSuccess(t *testing.T) {
-	file, err := os.Open("./test-fixtures/env.good")
-
-	if err != nil {
-		t.Fatal(err)
-	}
+	file := moontest.LoadTestFixture(t, "env.good")
 
 	defer file.Close()
 
-	env := NewEnv()
+	env := Env{}
 
 	if err := env.Read(file); err != nil {
 		t.Errorf("env.Read(./test/env.good) = %s. wanted nil", err)
@@ -125,17 +122,13 @@ func TestEnvReadSuccess(t *testing.T) {
 }
 
 func TestEnvReadError(t *testing.T) {
-	file, err := os.Open("./test-fixtures/env.bad")
-
-	if err != nil {
-		t.Fatal(err)
-	}
+	file := moontest.LoadTestFixture(t, "env.bad")
 
 	defer file.Close()
 
-	env := NewEnv()
+	env := Env{}
 
-	err = env.Read(file)
+	err := env.Read(file)
 
 	if err == nil {
 		t.Error("env.Read() = nil. want err")
@@ -146,4 +139,34 @@ func TestEnvReadError(t *testing.T) {
 	if err.Error() != expected {
 		t.Errorf("env.Read() = %s. want %s", err, expected)
 	}
+}
+
+func TestEnvLoad(t *testing.T) {
+	env, err := Load("./test-fixtures/test-env-load.env")
+
+	if err != nil {
+		t.Errorf("Load() = _, %s. want nil error", err)
+	}
+
+	tests := []struct {
+		name     string
+		expected string
+	}{
+		{"TEST_VAR", "test-var"},
+		{"OTHER_VAR", "other-var"},
+	}
+
+	for _, test := range tests {
+		envVar := os.Getenv(test.name)
+
+		if envVar != test.expected {
+			t.Errorf("environment variable %s = %s. want %s", test.name, envVar, test.expected)
+		}
+	}
+
+	t.Cleanup(func() {
+		for k := range env {
+			os.Unsetenv(k)
+		}
+	})
 }

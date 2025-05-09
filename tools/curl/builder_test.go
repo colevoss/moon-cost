@@ -4,13 +4,16 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"moon-cost/tools/env"
 	"net/http"
 	"strings"
 	"testing"
 )
 
-func TestBuilderMethod(t *testing.T) {
-	builder := Builder{}
+func TestBuilderMethodValidMethod(t *testing.T) {
+	var builder Builder
+
+	builder.URL(Params{}, "http://test.com")
 	builder.Method(http.MethodGet)
 
 	r, err := builder.Build(context.Background())
@@ -24,9 +27,9 @@ func TestBuilderMethod(t *testing.T) {
 	}
 }
 
-func TestBuilderURL(t *testing.T) {
+func TestBuilderURLParsesValidURL(t *testing.T) {
 	params := Params{
-		Env: Env{
+		Env: env.Env{
 			"url": "www.foo.com",
 		},
 		Params: ReqestParams{
@@ -66,9 +69,20 @@ func TestBuilderURL(t *testing.T) {
 	}
 }
 
+func TestBuilderURLInvalidTemplate(t *testing.T) {
+	var builder Builder
+	invalidUrl := "{{}{}}"
+
+	err := builder.URL(Params{}, invalidUrl)
+
+	if err == nil {
+		t.Errorf("builder.URL(invalidUrl) = nil. want error")
+	}
+}
+
 func TestBuilderBody(t *testing.T) {
 	params := Params{
-		Env: Env{
+		Env: env.Env{
 			"ENV_FOO": "BAR",
 		},
 		Params: ReqestParams{
@@ -148,10 +162,68 @@ func TestBuilderNoneBody(t *testing.T) {
 	}
 }
 
+func TestBuidlerQuery(t *testing.T) {
+	params := Params{
+		Env: env.Env{
+			"ENV_VAR": "env-var",
+		},
+		Params: map[string]string{
+			"param": "test-param",
+		},
+	}
+
+	curlQuery := map[string]string{
+		"a":        "b",
+		"env":      "{{.Env.ENV_VAR}}",
+		"override": "curl",
+	}
+
+	reqQuery := map[string]string{
+		"b":        "c",
+		"param":    "{{.Params.param}}",
+		"override": "req",
+	}
+
+	var builder Builder
+
+	builder.URL(params, "test.com")
+	builder.Method("GET")
+
+	if err := builder.Query(params, curlQuery, reqQuery); err != nil {
+		t.Errorf("builder.Query() = %s. want nil", err)
+	}
+
+	ctx := context.Background()
+
+	req, err := builder.Build(ctx)
+
+	if err != nil {
+		t.Errorf("builder.Build() = %s, want nil", err)
+	}
+
+	query := req.URL.Query()
+
+	tests := map[string]string{
+		"a":        "b",
+		"b":        "c",
+		"param":    "test-param",
+		"override": "req",
+		"env":      "env-var",
+	}
+
+	for k, v := range tests {
+		queryVal := query.Get(k)
+
+		if queryVal != v {
+			t.Errorf("query[%s] == %s. want %s", k, queryVal, v)
+		}
+	}
+}
+
 func TestBuilderHeaders(t *testing.T) {
 	secret := "53CR57"
 	params := Params{
-		Env: Env{
+		Env: env.Env{
 			"secret": secret,
 		},
 		Params: map[string]string{
