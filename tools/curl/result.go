@@ -86,3 +86,11 @@ func (r Result) BodyData() (any, error) {
 
 	return body, err
 }
+
+func (r Result) BodyString() string {
+	return string(r.bodyData)
+}
+
+func (r Result) BodyJson(data any) error {
+	return json.Unmarshal(r.bodyData, data)
+}

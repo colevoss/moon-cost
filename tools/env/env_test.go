@@ -1,7 +1,7 @@
-package curl
+package env
 
 import (
-	"os"
+	"moon-cost/moontest"
 	"testing"
 )
 
@@ -89,11 +89,7 @@ func TestEnvAddEnviron(t *testing.T) {
 }
 
 func TestEnvReadSuccess(t *testing.T) {
-	file, err := os.Open("./test-fixtures/env.good")
-
-	if err != nil {
-		t.Fatal(err)
-	}
+	file := moontest.LoadTestFixture(t, "env.good")
 
 	defer file.Close()
 
@@ -125,17 +121,13 @@ func TestEnvReadSuccess(t *testing.T) {
 }
 
 func TestEnvReadError(t *testing.T) {
-	file, err := os.Open("./test-fixtures/env.bad")
-
-	if err != nil {
-		t.Fatal(err)
-	}
+	file := moontest.LoadTestFixture(t, "env.bad")
 
 	defer file.Close()
 
 	env := Env{}
 
-	err = env.Read(file)
+	err := env.Read(file)
 
 	if err == nil {
 		t.Error("env.Read() = nil. want err")

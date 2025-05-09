@@ -1,8 +1,8 @@
 package migration
 
 import (
+	"errors"
 	"fmt"
-	"moon-cost/moontest"
 	"testing"
 	"time"
 )
@@ -27,23 +27,17 @@ func TestParseMigrationNameSuccessfully(t *testing.T) {
 		filename := makeMigrationFileName(test.timestamp, test.name)
 		parsed, err := parseMigrationName(filename)
 
-		moontest.AssertNilError(t, err)
+		if err != nil {
+			t.Errorf("parseMigrationName(%s) = _, %s. want nil err", filename, err)
+		}
 
-		moontest.Assert(
-			t,
-			parsed.Name == test.name,
-			"Expected parsed name to be %s. Got %s",
-			test.name,
-			parsed.Name,
-		)
+		if parsed.Name != test.name {
+			t.Errorf("parseMigrationName(%s).Name = %s. want %s", filename, parsed.Name, test.name)
+		}
 
-		moontest.Assert(
-			t,
-			parsed.Timestamp.Equal(test.timestamp),
-			"Expected parsed timestamp to be %s. Got %s",
-			test.timestamp,
-			parsed.Timestamp,
-		)
+		if !parsed.Timestamp.Equal(test.timestamp) {
+			t.Errorf("parseMigrationName(%s).Timestamp = %s. want %s", filename, parsed.Timestamp, test.timestamp)
+		}
 	}
 }
 
@@ -59,7 +53,9 @@ func TestParseMigrationNameRequiresSqlFile(t *testing.T) {
 	for _, test := range filenames {
 		_, err := parseMigrationName(test)
 
-		moontest.AssertErrorIs(t, err, InvalidFileTypeError)
+		if !errors.Is(err, InvalidFileTypeError) {
+			t.Errorf("parseMigrationName() = _, %s. want %s", err, InvalidFileTypeError)
+		}
 	}
 }
 
@@ -73,6 +69,8 @@ func TestParsedMalformedFileName(t *testing.T) {
 	for _, test := range filenames {
 		_, err := parseMigrationName(test)
 
-		moontest.AssertErrorIs(t, err, InvalidFilenameError)
+		if !errors.Is(err, InvalidFilenameError) {
+			t.Errorf("parseMigrationName() = _, %s. want %s", err, InvalidFilenameError)
+		}
 	}
 }

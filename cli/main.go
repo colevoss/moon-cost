@@ -13,6 +13,7 @@ func run(ctx context.Context) {
 	log.SetFlags(0)
 
 	var curl curl.CurlCLI
+	curl.Out = os.Stdout
 	var migration migration.MigrationCLI
 
 	cli := New()
@@ -22,7 +23,6 @@ func run(ctx context.Context) {
 	args := os.Args[1:]
 
 	if err := cli.Run(ctx, args); err != nil {
-		// log.Fatal(err)
 		os.Exit(1)
 	}
 }

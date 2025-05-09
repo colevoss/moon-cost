@@ -3,6 +3,7 @@ package curl
 import (
 	"encoding/json"
 	"io"
+	"moon-cost/tools/env"
 )
 
 type Curl struct {
@@ -14,7 +15,7 @@ type Curl struct {
 }
 
 type Params struct {
-	Env    Env
+	Env    env.Env
 	Params ReqestParams
 }
 

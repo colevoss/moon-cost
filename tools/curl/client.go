@@ -3,6 +3,7 @@ package curl
 import (
 	"context"
 	"fmt"
+	"moon-cost/tools/env"
 	"net/http"
 	"os"
 	"time"
@@ -13,10 +14,10 @@ type Client struct {
 	Curl        Curl
 	Request     Request
 	RequestName string
-	Env         Env
+	Env         env.Env
 }
 
-func (c *Client) LoadCurl(ctx context.Context, curlFile string) error {
+func (c *Client) LoadCurl(curlFile string) error {
 	file, err := os.Open(curlFile)
 
 	if err != nil {
@@ -25,19 +26,15 @@ func (c *Client) LoadCurl(ctx context.Context, curlFile string) error {
 
 	defer file.Close()
 
-	var curl Curl
-
-	if err := curl.Read(file); err != nil {
+	if err := c.Curl.Read(file); err != nil {
 		return err
 	}
-
-	c.Curl = curl
 
 	return nil
 }
 
-func (c *Client) LoadEnv(ctx context.Context, envFile string) error {
-	env := Env{}
+func (c *Client) LoadEnv(envFile string) error {
+	env := env.Env{}
 
 	file, err := os.Open(envFile)
 

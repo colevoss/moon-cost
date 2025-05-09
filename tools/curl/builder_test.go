@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"moon-cost/tools/env"
 	"net/http"
 	"strings"
 	"testing"
@@ -28,7 +29,7 @@ func TestBuilderMethodValidMethod(t *testing.T) {
 
 func TestBuilderURLParsesValidURL(t *testing.T) {
 	params := Params{
-		Env: Env{
+		Env: env.Env{
 			"url": "www.foo.com",
 		},
 		Params: ReqestParams{
@@ -81,7 +82,7 @@ func TestBuilderURLInvalidTemplate(t *testing.T) {
 
 func TestBuilderBody(t *testing.T) {
 	params := Params{
-		Env: Env{
+		Env: env.Env{
 			"ENV_FOO": "BAR",
 		},
 		Params: ReqestParams{
@@ -163,7 +164,7 @@ func TestBuilderNoneBody(t *testing.T) {
 
 func TestBuidlerQuery(t *testing.T) {
 	params := Params{
-		Env: Env{
+		Env: env.Env{
 			"ENV_VAR": "env-var",
 		},
 		Params: map[string]string{
@@ -222,7 +223,7 @@ func TestBuidlerQuery(t *testing.T) {
 func TestBuilderHeaders(t *testing.T) {
 	secret := "53CR57"
 	params := Params{
-		Env: Env{
+		Env: env.Env{
 			"secret": secret,
 		},
 		Params: map[string]string{

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"moon-cost/tools/env"
 	"net/http"
 )
 
@@ -14,7 +15,7 @@ var (
 type Manager struct {
 	Curl    Curl
 	Request Request
-	Env     Env
+	Env     env.Env
 }
 
 func BuildRequest(ctx context.Context, m Manager) (*http.Request, error) {

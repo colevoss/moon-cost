@@ -7,9 +7,10 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"moon-cost/assert"
 	"moon-cost/logging"
+	"moon-cost/tools/env"
 	"net/http"
-	"os"
 	"strings"
 	"time"
 )
@@ -17,9 +18,10 @@ import (
 type CurlCLI struct {
 	verbose bool
 	File    io.Reader
-	EnvFile Env
+	EnvFile env.Env
 
 	Args CLIArgs
+	Out  io.Writer
 }
 
 type CLIArgs struct {
@@ -86,6 +88,8 @@ func (c *CLIArgs) Parse(args []string) error {
 }
 
 func (c *CurlCLI) Init(args []string) error {
+	assert.Ensure(c.Out, "CurlCLI out required")
+
 	var cliArgs CLIArgs
 
 	if err := cliArgs.Parse(args); err != nil {
@@ -93,15 +97,13 @@ func (c *CurlCLI) Init(args []string) error {
 	}
 
 	c.Args = cliArgs
-	initLogger(cliArgs)
+	initLogger(cliArgs, c.Out)
 
 	return nil
 }
 
-func initLogger(args CLIArgs) {
+func initLogger(args CLIArgs, out io.Writer) {
 	var handler slog.Handler
-	// var out io.Writer
-	out := os.Stdout
 
 	level := slog.LevelInfo
 
@@ -140,7 +142,7 @@ func (c *CurlCLI) Command(ctx context.Context, args []string) error {
 
 	slog.Debug("loading curl file", slog.String("file", c.Args.File))
 
-	if err := client.LoadCurl(ctx, c.Args.File); err != nil {
+	if err := client.LoadCurl(c.Args.File); err != nil {
 		slog.Error(err.Error())
 		return err
 	}
@@ -150,7 +152,7 @@ func (c *CurlCLI) Command(ctx context.Context, args []string) error {
 	if c.Args.Env != "" {
 		slog.Debug("loading env file", slog.String("file", c.Args.Env))
 
-		if err := client.LoadEnv(ctx, c.Args.Env); err != nil {
+		if err := client.LoadEnv(c.Args.Env); err != nil {
 			slog.Error(err.Error())
 			return err
 		}
@@ -176,34 +178,6 @@ func (c *CurlCLI) Command(ctx context.Context, args []string) error {
 	}
 
 	return nil
-}
-
-func (c *CurlCLI) LoadEnv(ctx context.Context, args CLIArgs) (Env, error) {
-	env := Env{}
-
-	if args.Env == "" {
-		return env, nil
-	}
-
-	slog.Debug("opening env file", slog.String("envFile", args.Env))
-	file, err := os.Open(args.Env)
-
-	if err != nil {
-		slog.Error(err.Error(), slog.String("envFile", args.Env))
-		return env, err
-	}
-
-	defer file.Close()
-
-	slog.Debug("parsing env file", slog.String("envFile", args.Env))
-
-	if err := env.Read(file); err != nil {
-		slog.Error(fmt.Sprintf("%s:%s", args.Env, err))
-	}
-
-	slog.Log(ctx, logging.LevelVerbose, "parsed env file", slog.String("envFile", args.Env))
-
-	return env, nil
 }
 
 func (c *CurlCLI) logResult(ctx context.Context, result Result) error {

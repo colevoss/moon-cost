@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"moon-cost/tools/env"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -25,7 +26,7 @@ func TestManagerCall(t *testing.T) {
 
 	defer ts.Close()
 
-	env := Env{
+	env := env.Env{
 		"url": ts.URL,
 	}
 

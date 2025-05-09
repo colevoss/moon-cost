@@ -1,28 +1,21 @@
 package moontest
 
 import (
-	"errors"
+	"os"
+	"path/filepath"
 	"testing"
 )
 
-func AssertErrorIs(t *testing.T, actual error, expected error) {
-	if errors.Is(actual, expected) {
-		return
-	}
+func LoadTestFixture(t *testing.T, file string) *os.File {
+	t.Helper()
 
-	t.Errorf("Expected error to be %v. Got %v", expected, actual)
-}
+	path := filepath.Join(".", "test-fixtures", file)
 
-func Assert(t *testing.T, condition bool, message string, args ...any) {
-	if condition {
-		return
-	}
+	testFixture, err := os.Open(path)
 
-	t.Errorf(message, args...)
-}
-
-func AssertNilError(t *testing.T, err error) {
 	if err != nil {
-		t.Errorf("Expected error to be nil. Got %v", err)
+		t.Fatalf("Could not load test fixture: %s", err)
 	}
+
+	return testFixture
 }
