@@ -2,11 +2,16 @@ package curl
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"moon-cost/tools/env"
 	"net/http"
 	"os"
 	"time"
+)
+
+var (
+	ErrRequestNotFound = errors.New("Request not found in file")
 )
 
 type Client struct {
