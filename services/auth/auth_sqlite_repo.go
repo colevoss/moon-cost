@@ -6,11 +6,11 @@ import (
 	"fmt"
 )
 
-type SqlRepo struct {
+type SQLiteRepo struct {
 	db *sql.DB
 }
 
-func (s *SqlRepo) CreateAccount(ctx context.Context, userInput signupUser, accountInput signupAccount) (SignupResult, error) {
+func (s *SQLiteRepo) CreateAccount(ctx context.Context, userInput signupUser, accountInput signupAccount) (SignupResult, error) {
 	signupResult := SignupResult{}
 
 	tx, err := s.db.BeginTx(ctx, nil)
@@ -73,7 +73,7 @@ func (s *SqlRepo) CreateAccount(ctx context.Context, userInput signupUser, accou
 
 const getUserQuery = `SELECT id, firstname, lastname FROM users WHERE id = ?`
 
-func (s *SqlRepo) getUserTx(ctx context.Context, tx *sql.Tx, userId int) (User, error) {
+func (s *SQLiteRepo) getUserTx(ctx context.Context, tx *sql.Tx, userId int) (User, error) {
 	var user User
 
 	err := tx.QueryRowContext(

@@ -3,25 +3,27 @@ package auth
 import (
 	"context"
 	"errors"
+	"log/slog"
+	"moon-cost/logging"
 )
 
 var (
 	SignupAccountExistsError = errors.New("Account already exists")
 )
 
-var (
-	defaultSalt = RandomSalt{}
-)
+var defaultSalt RandomSalt
 
 type Service struct {
-	Salt Salt
-	Repo Repo
+	Salt   Salt
+	Repo   Repo
+	Logger *slog.Logger
 }
 
-func NewService(repo Repo) *Service {
+func NewService(repo Repo, logger *slog.Logger) *Service {
 	return &Service{
-		Repo: repo,
-		Salt: defaultSalt,
+		Repo:   repo,
+		Salt:   defaultSalt,
+		Logger: logging.Logger(logger, slog.String("service", "auth")),
 	}
 }
 
@@ -38,14 +40,14 @@ type SignupResult struct {
 }
 
 func (s *Service) Signup(ctx context.Context, input Signup) (SignupResult, error) {
-	salt := s.Salt.Generate()
+	salt := s.Salt.Salt()
 
 	saltedPass := Sha256SaltedPassword{
 		Password: input.Password,
 		Salt:     salt,
 	}
 
-	password := saltedPass.Value()
+	password := saltedPass.SaltPassword()
 
 	createAccountInput := signupAccount{
 		email:    input.Email,

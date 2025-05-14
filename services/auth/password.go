@@ -5,10 +5,13 @@ import (
 	"crypto/sha256"
 	"crypto/subtle"
 	"fmt"
+	"moon-cost/assert"
 )
 
-type SaltedPassword interface {
-	Value() string
+// The PasswordSalter interface wraps the SaltPassword function which
+// returns salted password
+type PasswordSalter interface {
+	SaltPassword() string
 }
 
 // Concats a raw password and a salt and sha256 encodes them
@@ -17,8 +20,11 @@ type Sha256SaltedPassword struct {
 	Salt     string
 }
 
-func (s Sha256SaltedPassword) Value() string {
-	combined := s.Password + s.Salt
+func (s Sha256SaltedPassword) SaltPassword() string {
+	assert.Ok(s.Password != "", "Password must be populated and not blank")
+	assert.Ok(s.Salt != "", "Salt must be populated and not blank")
+
+	combined := fmt.Sprintf("%s%s", s.Password, s.Salt)
 	h := sha256.New()
 	h.Write([]byte(combined))
 	hashed := h.Sum(nil)
@@ -29,19 +35,23 @@ func (s Sha256SaltedPassword) Value() string {
 // Used to represent a basic string as a SaltedPassword
 type BasicSaltedPassword string
 
-func (b BasicSaltedPassword) Value() string {
+func (b BasicSaltedPassword) SaltPassword() string {
 	return string(b)
 }
 
+// The Salt interface wraps the
+// Salt generates a string that should be used when salting a password
 type Salt interface {
-	Generate() string
+	Salt() string
 }
 
+// Salt implementation that returns a cryptographically secure random string
+// of Length length
 type RandomSalt struct {
 	Length int
 }
 
-func (r RandomSalt) Generate() string {
+func (r RandomSalt) Salt() string {
 	salt := make([]byte, r.Length)
 
 	rand.Read(salt)
@@ -49,9 +59,9 @@ func (r RandomSalt) Generate() string {
 	return fmt.Sprintf("%x", string(salt))
 }
 
-func comparePasswords(expected SaltedPassword, actual SaltedPassword) bool {
-	expectedValue := expected.Value()
-	actualValue := actual.Value()
+func ComparePasswords(expected PasswordSalter, actual PasswordSalter) bool {
+	expectedValue := expected.SaltPassword()
+	actualValue := actual.SaltPassword()
 
 	compared := subtle.ConstantTimeCompare([]byte(expectedValue), []byte(actualValue))
 

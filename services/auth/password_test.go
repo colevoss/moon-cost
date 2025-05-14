@@ -13,8 +13,8 @@ var testSha256SaltedPass = Sha256SaltedPassword{
 
 func TestComparePassword(t *testing.T) {
 	tests := []struct {
-		expected SaltedPassword
-		actual   SaltedPassword
+		expected PasswordSalter
+		actual   PasswordSalter
 		matches  bool
 	}{
 		{expected: BasicSaltedPassword("password"), actual: BasicSaltedPassword("password"), matches: true},
@@ -23,7 +23,7 @@ func TestComparePassword(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		matches := comparePasswords(test.expected, test.actual)
+		matches := ComparePasswords(test.expected, test.actual)
 
 		if matches != test.matches {
 			t.Errorf("comparePasswords(%s, %s) == %t. want %t", test.expected, test.actual, matches, test.matches)
@@ -32,7 +32,7 @@ func TestComparePassword(t *testing.T) {
 }
 
 func TestSha256SaltedPassword(t *testing.T) {
-	value := testSha256SaltedPass.Value()
+	value := testSha256SaltedPass.SaltPassword()
 
 	if value != testSha256SaltedPassString {
 		t.Errorf("Sha256SaltedPassword.Value() == %s. want %s", value, testSha256SaltedPassString)

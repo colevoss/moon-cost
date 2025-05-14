@@ -124,9 +124,9 @@ func initLogger(args CLIArgs, out io.Writer) {
 		handler = slog.DiscardHandler
 	} else {
 		if args.JSON {
-			handler = NewJSONHandler(out, level)
+			handler = slog.NewJSONHandler(out, nil)
 		} else {
-			handler = NewStandardHandler(out, level)
+			handler = logging.NewPrettyHandler(out, level)
 		}
 	}
 
