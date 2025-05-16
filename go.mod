@@ -2,7 +2,10 @@ module moon-cost
 
 go 1.24.1
 
-require github.com/tursodatabase/go-libsql v0.0.0-20241221181756-6121e81fbf92
+require (
+	github.com/gofrs/uuid/v5 v5.3.2
+	github.com/tursodatabase/go-libsql v0.0.0-20241221181756-6121e81fbf92
+)
 
 require (
 	github.com/antlr4-go/antlr/v4 v4.13.0 // indirect

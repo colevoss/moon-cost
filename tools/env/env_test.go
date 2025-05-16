@@ -1,7 +1,7 @@
 package env
 
 import (
-	"moon-cost/moontest"
+	"moon-cost/moon"
 	"os"
 	"testing"
 )
@@ -90,7 +90,7 @@ func TestEnvAddEnviron(t *testing.T) {
 }
 
 func TestEnvReadSuccess(t *testing.T) {
-	file := moontest.LoadTestFixture(t, "env.good")
+	file := moon.LoadTestFixture(t, "env.good")
 
 	defer file.Close()
 
@@ -122,7 +122,7 @@ func TestEnvReadSuccess(t *testing.T) {
 }
 
 func TestEnvReadError(t *testing.T) {
-	file := moontest.LoadTestFixture(t, "env.bad")
+	file := moon.LoadTestFixture(t, "env.bad")
 
 	defer file.Close()
 

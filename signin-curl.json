@@ -1,0 +1,19 @@
+{
+  "method": "POST",
+  "url": "http://{{.Env.base}}/auth/signin",
+
+  "requests": {
+    "default": {
+      "expect": {
+        "status": 200
+      },
+
+      "body": {
+        "json": {
+          "email": "test@test.com",
+          "password": "mypassword"
+        }
+      }
+    }
+  }
+}

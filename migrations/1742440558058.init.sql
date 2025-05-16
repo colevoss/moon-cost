@@ -1,30 +1,30 @@
 CREATE TABLE IF NOT EXISTS organizations (
-  id INTEGER PRIMARY KEY,
+  id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
   createdAt INTEGER NOT NULL,
   updatedAt INTEGER NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS locations (
-  id INTEGETER PRIMARY KEY,
+  id TEXT PRIMARY KEY,
 
   address TEXT,
   city TEXT,
   state TEXT,
 
-  organizationId INTEGER NOT NULL,
+  organizationId TEXT NOT NULL,
   FOREIGN KEY(organizationId) REFERENCES organizations(id)
 );
 
 CREATE TABLE IF NOT EXISTS users (
-  id INTEGER PRIMARY KEY,
+  id TEXT PRIMARY KEY,
 
   firstname TEXT NOT NULL,
   lastname TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS accounts (
-  id INTEGER PRIMARY KEY,
+  id TEXT PRIMARY KEY,
 
   email TEXT NOT NULL UNIQUE,
   password TEXT NOT NULL,
@@ -32,6 +32,6 @@ CREATE TABLE IF NOT EXISTS accounts (
 
   active INTEGER CHECK (active IN (0, 1)),
 
-  userId INTEGER NOT NULL,
+  userId TEXT NOT NULL,
   FOREIGN KEY(userId) REFERENCES users(id)
 );
