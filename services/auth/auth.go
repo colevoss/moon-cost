@@ -4,14 +4,17 @@ import (
 	"context"
 	"errors"
 	"log/slog"
-	"moon-cost/logging"
+	"moon-cost/moon"
 )
 
 var (
-	SignupAccountExistsError = errors.New("Account already exists")
+	SignupAccountExistsError = errors.New("account already exists")
+	AccountNotFoundError     = errors.New("account not found")
 )
 
-var defaultSalt RandomSalt
+var defaultSalt = RandomSalt{
+	Length: 32,
+}
 
 type Service struct {
 	Salt   Salt
@@ -19,15 +22,14 @@ type Service struct {
 	Logger *slog.Logger
 }
 
-func NewService(repo Repo, logger *slog.Logger) *Service {
+func NewService(repo Repo) *Service {
 	return &Service{
-		Repo:   repo,
-		Salt:   defaultSalt,
-		Logger: logging.Logger(logger, slog.String("service", "auth")),
+		Repo: repo,
+		Salt: defaultSalt,
 	}
 }
 
-type Signup struct {
+type SignupInput struct {
 	Email     string
 	Password  string
 	Firstname string
@@ -35,11 +37,27 @@ type Signup struct {
 }
 
 type SignupResult struct {
-	User    User
-	Account Account
+	UserId    moon.UUID `json:"userId"`
+	AccountId moon.UUID `json:"accountId"`
 }
 
-func (s *Service) Signup(ctx context.Context, input Signup) (SignupResult, error) {
+func (s *Service) Signup(ctx context.Context, input SignupInput) (SignupResult, error) {
+	exists, err := s.Repo.AccountExists(ctx, input.Email)
+
+	if err != nil {
+		return SignupResult{}, err
+	}
+
+	if exists {
+		slog.WarnContext(
+			ctx,
+			"user with email already exists",
+			slog.String("email", input.Email),
+		)
+
+		return SignupResult{}, SignupAccountExistsError
+	}
+
 	salt := s.Salt.Salt()
 
 	saltedPass := Sha256SaltedPassword{
@@ -49,18 +67,65 @@ func (s *Service) Signup(ctx context.Context, input Signup) (SignupResult, error
 
 	password := saltedPass.SaltPassword()
 
-	createAccountInput := signupAccount{
+	accountInput := createAccountAccount{
 		email:    input.Email,
 		salt:     salt,
 		password: password,
 	}
 
-	createUserInput := signupUser{
-		Firstname: input.Firstname,
-		Lastname:  input.Lastname,
+	userInput := createAccountUser{
+		firstname: input.Firstname,
+		lastname:  input.Lastname,
 	}
 
-	account, err := s.Repo.CreateAccount(ctx, createUserInput, createAccountInput)
+	account, err := s.Repo.CreateAccount(ctx, createAccountInput{
+		account: accountInput,
+		user:    userInput,
+	})
 
 	return account, err
+}
+
+type SignInInput struct {
+	Email    string
+	Password string
+}
+
+type SignInResult struct {
+	UserId    string `json:"userId"`
+	AccountId string `json:"accountId"`
+}
+
+func (s *Service) SignIn(ctx context.Context, input SignInInput) (SignInResult, error) {
+	var signin SignInResult
+
+	account, err := s.Repo.FindAccountByEmail(ctx, input.Email)
+
+	// we don't return here because we want to still do password comparison to keep consistent timing
+	// it could be argued that the log will produce inconsistent timing as well
+	if err != nil {
+		slog.WarnContext(
+			ctx,
+			"error querying for user by email",
+			slog.String("email", input.Email),
+			slog.String("err", err.Error()),
+		)
+	}
+
+	submittedPass := Sha256SaltedPassword{
+		Password: input.Password,
+		Salt:     account.Salt,
+	}
+
+	expectedPass := BasicSaltedPassword(account.Password)
+	passwordsMatch := ComparePasswords(submittedPass, expectedPass)
+
+	if !passwordsMatch {
+		return signin, AccountNotFoundError
+	}
+
+	signin.UserId = account.UserId
+	signin.AccountId = account.Id
+
+	return signin, nil
 }

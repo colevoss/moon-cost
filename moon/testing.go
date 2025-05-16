@@ -1,4 +1,4 @@
-package moontest
+package moon
 
 import (
 	"os"

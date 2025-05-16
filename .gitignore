@@ -1,7 +1,7 @@
 *.db
 
 bin
-moon
+mcli
 
 coverage
 coverage.out

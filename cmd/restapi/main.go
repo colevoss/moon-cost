@@ -1,26 +1,49 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
+	"log/slog"
 	"moon-cost/api"
+	"moon-cost/logging"
+	"moon-cost/moon"
 	"moon-cost/services/auth"
 	"net/http"
 	"os"
+
+	_ "github.com/tursodatabase/go-libsql"
 )
 
-func createAuth() *auth.Service {
-	repo := auth.NoopRepo{}
+func createAuth(db *sql.DB) *auth.Service {
+	repo := auth.SQLiteRepo{
+		DB: db,
+		ID: moon.DefaultUUIDGenerator,
+	}
+	// repo := auth.NoopRepo{}
 	return auth.NewService(&repo)
 }
 
 func run() int {
+	prettyHandler := logging.NewPrettyHandler(os.Stderr, slog.LevelDebug)
+	logger := slog.New(prettyHandler)
+	slog.SetDefault(logger)
+
+	// slog.SetLogLoggerLevel(slog.LevelDebug)
+
 	cfg := api.Config{
 		Port: 8080,
 	}
 
+	db, err := sql.Open("libsql", "file:./local.db")
+
+	if err != nil {
+		slog.Error("error opening db", "err", err)
+		return 1
+	}
+
 	restApi := api.New(cfg)
 
-	authSvc := createAuth()
+	authSvc := createAuth(db)
 
 	authController := api.AuthController{
 		Auth: authSvc,

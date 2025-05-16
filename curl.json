@@ -1,6 +1,6 @@
 {
   "method": "POST",
-  "url": "http://{{.Env.base}}/auth/signup/{{.Params.id}}",
+  "url": "http://{{.Env.base}}/auth/signup",
 
   "headers": {
     "Foo": "{{.Params.id}}",
@@ -14,7 +14,7 @@
       },
 
       "expect": {
-        "status": 200
+        "status": 201
       },
 
       "headers": {},

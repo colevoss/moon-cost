@@ -22,7 +22,7 @@ type Sha256SaltedPassword struct {
 
 func (s Sha256SaltedPassword) SaltPassword() string {
 	assert.Ok(s.Password != "", "Password must be populated and not blank")
-	assert.Ok(s.Salt != "", "Salt must be populated and not blank")
+	// assert.Ok(s.Salt != "", "Salt must be populated and not blank")
 
 	combined := fmt.Sprintf("%s%s", s.Password, s.Salt)
 	h := sha256.New()

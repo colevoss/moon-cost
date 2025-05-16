@@ -3,17 +3,19 @@ package auth
 import (
 	"context"
 	"database/sql"
-	"fmt"
+	"log/slog"
+	"moon-cost/moon"
 )
 
 type SQLiteRepo struct {
-	db *sql.DB
+	DB *sql.DB
+	ID moon.IDGenerator
 }
 
-func (s *SQLiteRepo) CreateAccount(ctx context.Context, userInput signupUser, accountInput signupAccount) (SignupResult, error) {
-	signupResult := SignupResult{}
+func (s *SQLiteRepo) CreateAccount(ctx context.Context, input createAccountInput) (SignupResult, error) {
+	var signupResult SignupResult
 
-	tx, err := s.db.BeginTx(ctx, nil)
+	tx, err := s.DB.BeginTx(ctx, nil)
 
 	if err != nil {
 		return signupResult, err
@@ -21,70 +23,160 @@ func (s *SQLiteRepo) CreateAccount(ctx context.Context, userInput signupUser, ac
 
 	defer tx.Rollback()
 
-	createUserRes, err := tx.ExecContext(
-		ctx,
-		`INSERT INTO users (firstname, lastname) VALUES (?, ?)`,
-		userInput.Firstname,
-		userInput.Lastname,
-	)
+	userId, err := s.createUser(ctx, tx, input.user)
 
 	if err != nil {
 		return signupResult, err
 	}
 
-	userId, err := createUserRes.LastInsertId()
+	signupResult.UserId = userId
+
+	accountId, err := s.createAccount(ctx, tx, input.account, userId)
 
 	if err != nil {
 		return signupResult, err
 	}
 
-	createAccountRes, err := tx.ExecContext(
-		ctx,
-		`INSERT INTO accounts (email, password, salt, active, userId)
-    VALUES (?, ?, ?, ?, ?)`,
-		accountInput.email,
-		accountInput.password,
-		accountInput.salt,
-		1,
-		userId,
-	)
+	signupResult.AccountId = accountId
 
-	if err != nil {
-		return signupResult, err
-	}
-
-	// TODO: Get account
-	accountId, err := createAccountRes.LastInsertId()
-
-	if err != nil {
-		return signupResult, err
-	}
-
-	fmt.Printf("Account Id %d", accountId)
-
-	signupResult.User, err = s.getUserTx(ctx, tx, int(userId))
-
-	if err != nil {
+	if err := tx.Commit(); err != nil {
+		slog.ErrorContext(
+			ctx,
+			"error committing create account transaction",
+			slog.String("err", err.Error()),
+		)
 		return signupResult, err
 	}
 
 	return signupResult, nil
 }
 
-const getUserQuery = `SELECT id, firstname, lastname FROM users WHERE id = ?`
+func (s *SQLiteRepo) AccountExists(ctx context.Context, email string) (bool, error) {
+	_, err := s.findAccountByEmail(ctx, email)
 
-func (s *SQLiteRepo) getUserTx(ctx context.Context, tx *sql.Tx, userId int) (User, error) {
-	var user User
+	if err == AccountNotFoundError {
+		return false, nil
+	}
 
-	err := tx.QueryRowContext(
+	return true, err
+}
+
+func (s *SQLiteRepo) FindAccountByEmail(ctx context.Context, email string) (Account, error) {
+	account, err := s.findAccountByEmail(ctx, email)
+
+	return account, err
+}
+
+func (s *SQLiteRepo) findAccountByEmail(ctx context.Context, email string) (Account, error) {
+	slog.DebugContext(
 		ctx,
-		getUserQuery,
-		userId,
-	).Scan(
-		&user.Id,
-		&user.Firstname,
-		&user.Lastname,
+		"querying for account by email",
+		slog.String("email", email),
 	)
 
-	return user, err
+	row := s.DB.QueryRowContext(
+		ctx,
+		AuthQueries.SQLite("findAccountByEmail"),
+		email,
+	)
+
+	var account Account
+
+	err := row.Scan(
+		&account.Id,
+		&account.Email,
+		&account.Password,
+		&account.Salt,
+		&account.Active,
+		&account.UserId,
+	)
+
+	if err == sql.ErrNoRows {
+		return account, AccountNotFoundError
+	}
+
+	return account, err
+}
+
+func (s *SQLiteRepo) createUser(ctx context.Context, e moon.Execer, input createAccountUser) (moon.UUID, error) {
+	id, err := s.ID.ID()
+
+	if err != nil {
+		slog.ErrorContext(ctx, "error creating uuid", slog.String("err", err.Error()))
+		return id, err
+	}
+
+	slog.DebugContext(
+		ctx,
+		"creating user",
+		slog.String("id", id.String()),
+	)
+
+	_, err = e.ExecContext(
+		ctx,
+		AuthQueries.SQLite("createUser"),
+		id,
+		input.firstname,
+		input.lastname,
+	)
+
+	if err != nil {
+		slog.DebugContext(
+			ctx,
+			"error creating user in sqlite",
+			slog.String("err", err.Error()),
+			slog.String("id", id.String()),
+		)
+	}
+
+	slog.InfoContext(
+		ctx,
+		"created user in sqlite",
+		slog.String("id", id.String()),
+	)
+
+	return id, err
+}
+
+func (s *SQLiteRepo) createAccount(ctx context.Context, e moon.Execer, input createAccountAccount, userId moon.UUID) (moon.UUID, error) {
+	id, err := s.ID.ID()
+
+	if err != nil {
+		slog.ErrorContext(ctx, "error creating uuid", slog.String("err", err.Error()))
+		return id, err
+	}
+
+	slog.DebugContext(
+		ctx,
+		"creating account",
+		slog.String("id", id.String()),
+	)
+
+	_, err = e.ExecContext(
+		ctx,
+		AuthQueries.SQLite("createAccount"),
+		id,
+		input.email,
+		input.password,
+		input.salt,
+		moon.DBTrue,
+		userId,
+	)
+
+	if err != nil {
+		slog.ErrorContext(
+			ctx,
+			"error creating account in sqlite",
+			slog.String("id", id.String()),
+			slog.String("error", err.Error()),
+		)
+	}
+
+	slog.InfoContext(
+		ctx,
+		"account created in sqlite",
+		slog.String("id", id.String()),
+	)
+
+	return id, err
 }
