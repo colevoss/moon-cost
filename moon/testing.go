@@ -1,6 +1,7 @@
-package moontest
+package moon
 
 import (
+	"log/slog"
 	"os"
 	"path/filepath"
 	"testing"
@@ -18,4 +19,10 @@ func LoadTestFixture(t *testing.T, file string) *os.File {
 	}
 
 	return testFixture
+}
+
+func DisableSlog(t *testing.T) {
+	t.Helper()
+
+	slog.SetDefault(slog.New(slog.DiscardHandler))
 }

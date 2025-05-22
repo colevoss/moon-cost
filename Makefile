@@ -26,7 +26,7 @@ $(cmd):
 build/cli: $(cli)
 
 $(cli):
-	go build -o moon $(CLI_DIR)
+	go build -o mcli $(CLI_DIR)
 
 # ========================================
 # TIDY

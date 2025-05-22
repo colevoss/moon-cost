@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log/slog"
-	"moon-cost/assert"
+	"moon-cost/moon/assert"
 )
 
 const DEFAULT_TABLE_NAME = "migrations"
