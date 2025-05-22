@@ -29,7 +29,7 @@ func (s *SQLiteRepo) CreateAccount(ctx context.Context, input createAccountInput
 		return signupResult, err
 	}
 
-	signupResult.UserId = userId
+	signupResult.UserId = userId.String()
 
 	accountId, err := s.createAccount(ctx, tx, input.account, userId)
 
@@ -37,7 +37,7 @@ func (s *SQLiteRepo) CreateAccount(ctx context.Context, input createAccountInput
 		return signupResult, err
 	}
 
-	signupResult.AccountId = accountId
+	signupResult.AccountId = accountId.String()
 
 	if err := tx.Commit(); err != nil {
 		slog.ErrorContext(
@@ -54,7 +54,7 @@ func (s *SQLiteRepo) CreateAccount(ctx context.Context, input createAccountInput
 func (s *SQLiteRepo) AccountExists(ctx context.Context, email string) (bool, error) {
 	_, err := s.findAccountByEmail(ctx, email)
 
-	if err == AccountNotFoundError {
+	if err == ErrAccountNotFound {
 		return false, nil
 	}
 
@@ -92,7 +92,7 @@ func (s *SQLiteRepo) findAccountByEmail(ctx context.Context, email string) (Acco
 	)
 
 	if err == sql.ErrNoRows {
-		return account, AccountNotFoundError
+		return account, ErrAccountNotFound
 	}
 
 	return account, err

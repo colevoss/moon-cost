@@ -4,29 +4,20 @@ import (
 	"context"
 	"errors"
 	"log/slog"
-	"moon-cost/moon"
 )
 
 var (
-	SignupAccountExistsError = errors.New("account already exists")
-	AccountNotFoundError     = errors.New("account not found")
+	ErrSignupAccountExists = errors.New("account already exists")
+	ErrAccountNotFound     = errors.New("account not found")
 )
 
-var defaultSalt = RandomSalt{
+var DefaultSalt = RandomSalt{
 	Length: 32,
 }
 
 type Service struct {
-	Salt   Salt
-	Repo   Repo
-	Logger *slog.Logger
-}
-
-func NewService(repo Repo) *Service {
-	return &Service{
-		Repo: repo,
-		Salt: defaultSalt,
-	}
+	Salt Salt
+	Repo Repo
 }
 
 type SignupInput struct {
@@ -37,11 +28,11 @@ type SignupInput struct {
 }
 
 type SignupResult struct {
-	UserId    moon.UUID `json:"userId"`
-	AccountId moon.UUID `json:"accountId"`
+	UserId    string `json:"userId"`
+	AccountId string `json:"accountId"`
 }
 
-func (s *Service) Signup(ctx context.Context, input SignupInput) (SignupResult, error) {
+func (s *Service) SignUp(ctx context.Context, input SignupInput) (SignupResult, error) {
 	exists, err := s.Repo.AccountExists(ctx, input.Email)
 
 	if err != nil {
@@ -55,7 +46,7 @@ func (s *Service) Signup(ctx context.Context, input SignupInput) (SignupResult, 
 			slog.String("email", input.Email),
 		)
 
-		return SignupResult{}, SignupAccountExistsError
+		return SignupResult{}, ErrSignupAccountExists
 	}
 
 	salt := s.Salt.Salt()
@@ -121,7 +112,7 @@ func (s *Service) SignIn(ctx context.Context, input SignInInput) (SignInResult, 
 	passwordsMatch := ComparePasswords(submittedPass, expectedPass)
 
 	if !passwordsMatch {
-		return signin, AccountNotFoundError
+		return signin, ErrAccountNotFound
 	}
 
 	signin.UserId = account.UserId

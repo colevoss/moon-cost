@@ -5,7 +5,6 @@ import (
 	"crypto/sha256"
 	"crypto/subtle"
 	"fmt"
-	"moon-cost/assert"
 )
 
 // The PasswordSalter interface wraps the SaltPassword function which
@@ -21,10 +20,7 @@ type Sha256SaltedPassword struct {
 }
 
 func (s Sha256SaltedPassword) SaltPassword() string {
-	assert.Ok(s.Password != "", "Password must be populated and not blank")
-	// assert.Ok(s.Salt != "", "Salt must be populated and not blank")
-
-	combined := fmt.Sprintf("%s%s", s.Password, s.Salt)
+	combined := s.Password + s.Salt
 	h := sha256.New()
 	h.Write([]byte(combined))
 	hashed := h.Sum(nil)
@@ -57,6 +53,14 @@ func (r RandomSalt) Salt() string {
 	rand.Read(salt)
 
 	return fmt.Sprintf("%x", string(salt))
+}
+
+type StaticSalt struct {
+	SaltValue string
+}
+
+func (s StaticSalt) Salt() string {
+	return s.SaltValue
 }
 
 func ComparePasswords(expected PasswordSalter, actual PasswordSalter) bool {

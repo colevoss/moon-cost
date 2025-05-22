@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"log/slog"
 	"moon-cost/api"
-	"moon-cost/logging"
 	"moon-cost/moon"
+	"moon-cost/moon/logging"
 	"moon-cost/services/auth"
 	"net/http"
 	"os"
@@ -15,12 +15,15 @@ import (
 )
 
 func createAuth(db *sql.DB) *auth.Service {
-	repo := auth.SQLiteRepo{
+	repo := &auth.SQLiteRepo{
 		DB: db,
 		ID: moon.DefaultUUIDGenerator,
 	}
-	// repo := auth.NoopRepo{}
-	return auth.NewService(&repo)
+
+	return &auth.Service{
+		Salt: auth.DefaultSalt,
+		Repo: repo,
+	}
 }
 
 func run() int {
@@ -28,13 +31,12 @@ func run() int {
 	logger := slog.New(prettyHandler)
 	slog.SetDefault(logger)
 
-	// slog.SetLogLoggerLevel(slog.LevelDebug)
-
 	cfg := api.Config{
 		Port: 8080,
 	}
 
-	db, err := sql.Open("libsql", "file:./local.db")
+	// db, err := sql.Open("libsql", "file:./local.db")
+	db, err := sql.Open("libsql", ":memory:")
 
 	if err != nil {
 		slog.Error("error opening db", "err", err)

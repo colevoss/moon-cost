@@ -24,11 +24,11 @@ jobs:
         run: |
           make install
 
-      # -
-      #   id: vet
-      #   name: Vet
-      #   run: |
-      #     make check/vet
+      -
+        id: vet
+        name: Vet
+        run: |
+          make check/vet
 
       -
         id: fmt

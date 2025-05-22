@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
-	"moon-cost/router"
+	"moon-cost/moon/router"
 	"moon-cost/services/auth"
 	"net/http"
 )
@@ -51,9 +51,9 @@ func (a *AuthController) Signup(w http.ResponseWriter, r *http.Request) {
 		Lastname:  body.Lastname,
 	}
 
-	signupResult, err := a.Auth.Signup(ctx, signup)
+	signupResult, err := a.Auth.SignUp(ctx, signup)
 
-	if err == auth.SignupAccountExistsError {
+	if err == auth.ErrSignupAccountExists {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -93,7 +93,7 @@ func (a *AuthController) Signin(w http.ResponseWriter, r *http.Request) {
 
 	signinResult, err := a.Auth.SignIn(ctx, signinInput)
 
-	if err == auth.AccountNotFoundError {
+	if err == auth.ErrAccountNotFound {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}

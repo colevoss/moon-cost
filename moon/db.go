@@ -3,7 +3,7 @@ package moon
 import (
 	"context"
 	"database/sql"
-	"moon-cost/assert"
+	"moon-cost/moon/assert"
 )
 
 const (
